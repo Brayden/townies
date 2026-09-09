@@ -11,6 +11,15 @@ export const TASKS=[{id:'paper-1',job:'paper',x:-9,z:-4,title:'Good news on Clov
 export const SCHOOL={x:0,z:-19};
 export const PARK={x:-16,z:0};
 export const SHOP=[{id:'flowers',name:'Porch flowers',price:80,description:'A bright little welcome at your front door.'},{id:'bench',name:'Garden bench',price:180,description:'Your very own spot to watch the world go by.'},{id:'bike',name:'Town bicycle',price:350,description:'Cruise around town a little faster.'},{id:'home',name:'Cottage extension',price:1200,description:'A bigger porch and a very proud front garden.'}];
-export type Resident={id:string;name:string;color:string;home:number|null;job:string|null;coins:number;xp:number;education:number;lastStudy:string|null;x:number;z:number;items:string[]};
-export type Peer={id:string;name:string;color:string;x:number;z:number};
-export type TownState={resident:Resident;town:{id:string;name:string;private:boolean;key?:string;treasury:number;project:number;prosperity:number;residents:number};peers:Peer[];properties:{home:number;items:string[];name:string}[];occupied:number[];completed:string[];events:{name:string;text:string}[]};
+export type Resident={id:string;name:string;color:string;home:number|null;job:string|null;coins:number;xp:number;education:number;lastStudy:string|null;x:number;z:number;items:string[];mowing:boolean};
+export type Peer={id:string;name:string;color:string;x:number;z:number;mowing:boolean};
+export type TownState={resident:Resident;town:{id:string;name:string;private:boolean;key?:string;treasury:number;project:number;prosperity:number;residents:number};peers:Peer[];properties:{home:number;items:string[];name:string}[];occupied:number[];completed:string[];lawnCuts:string[];events:{name:string;text:string}[]};
+
+// Each patch has a stable identity shared by the scene and the authoritative server.
+export const GRASS_REGROW_MS=120000;
+export const LAWN_CELLS=TASKS.filter(t=>t.job==='mow').flatMap(t=>Array.from({length:40},(_,i)=>({id:`${t.id}:${i}`,task:t.id,x:t.x+(i%8-3.5)*.65,z:t.z+(Math.floor(i/8)-2)*.65,row:Math.floor(i/8)})));
+export function sweptGrass(ax:number,az:number,bx:number,bz:number){
+ const dx=bx-ax,dz=bz-az,length=dx*dx+dz*dz;
+ if(length<.000001)return [];
+ return LAWN_CELLS.filter(c=>{const t=Math.max(0,Math.min(1,((c.x-ax)*dx+(c.z-az)*dz)/length));return Math.hypot(c.x-ax-t*dx,c.z-az-t*dz)<.52});
+}
