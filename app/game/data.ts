@@ -17,9 +17,39 @@ export type TownState={resident:Resident;town:{id:string;name:string;private:boo
 
 // Each patch has a stable identity shared by the scene and the authoritative server.
 export const GRASS_REGROW_MS=120000;
-export const LAWN_CELLS=TASKS.filter(t=>t.job==='mow').flatMap(t=>Array.from({length:40},(_,i)=>({id:`${t.id}:${i}`,task:t.id,x:t.x+(i%8-3.5)*.65,z:t.z+(Math.floor(i/8)-2)*.65,row:Math.floor(i/8)})));
+type GrassCell={id:string;task:string;x:number;z:number;row:number;size:number};
+// Keep existing patch IDs so neighbors' recent work survives this town expansion.
+const originalLawns:GrassCell[]=TASKS.filter(t=>t.job==='mow').flatMap(t=>Array.from({length:40},(_,i)=>({id:`${t.id}:${i}`,task:t.id,x:t.x+(i%8-3.5)*.65,z:t.z+(Math.floor(i/8)-2)*.65,row:Math.floor(i/8),size:.65})));
+export function isGrassGround(x:number,z:number){
+ if(Math.abs(x)>58||z< -53||z>50)return false;
+ if(Math.abs(x)<2.95||Math.abs(z)<2.95||(Math.abs(x)<10.95&&Math.abs(z)<9.45))return false;
+ if(x>23.1&&x<32.9)return false;
+ if(Math.abs(Math.abs(x)-54)<2.1)return false;
+ if([-34,-46,30,42].some(row=>Math.abs(z-row-4)<2.15))return false;
+ if(HOMES.some(h=>(Math.abs(x-h.x)<3.55&&Math.abs(z-h.z)<3.25)||(Math.abs(x-h.x-.55)<1&&z>h.z+1.5&&z<h.z+5.35)))return false;
+ if(Math.abs(x)<3.9&&Math.abs(z+22)<3.5)return false;
+ if(Math.abs(x+16)<4&&Math.abs(z)<4)return false;
+ if(Math.hypot(x+23,z+18)<2.1)return false;
+ // Respect the existing flower beds and the two original lawns.
+ if(TASKS.some(t=>t.job==='garden'&&Math.hypot(x-t.x,z-t.z)<1.6))return false;
+ if(TASKS.some(t=>t.job==='mow'&&Math.abs(x-t.x)<3&&Math.abs(z-t.z)<2))return false;
+ return true;
+}
+const neighborhoodGrass:GrassCell[]=[];
+for(let row=0;row<=128;row++)for(let col=0;col<=145;col++){
+ const x=Number((-58+col*.8).toFixed(2)),z=Number((-52.8+row*.8).toFixed(2));
+ if(isGrassGround(x,z))neighborhoodGrass.push({id:`town-grass:${col}:${row}`,task:'town-grass',x,z,row,size:.8});
+}
+export const LAWN_CELLS=[...originalLawns,...neighborhoodGrass];
+// Local lookups keep cutting inexpensive even with grass across the whole town.
+const grassBuckets=new Map<string,GrassCell[]>();
+for(const c of LAWN_CELLS){const key=`${Math.floor(c.x/2)}:${Math.floor(c.z/2)}`;const bucket=grassBuckets.get(key)??[];bucket.push(c);grassBuckets.set(key,bucket)}
 export function sweptGrass(ax:number,az:number,bx:number,bz:number){
  const dx=bx-ax,dz=bz-az,length=dx*dx+dz*dz;
  if(length<.000001)return [];
- return LAWN_CELLS.filter(c=>{const t=Math.max(0,Math.min(1,((c.x-ax)*dx+(c.z-az)*dz)/length));return Math.hypot(c.x-ax-t*dx,c.z-az-t*dz)<.52});
+ const result:GrassCell[]=[];
+ for(let x=Math.floor((Math.min(ax,bx)-.52)/2);x<=Math.floor((Math.max(ax,bx)+.52)/2);x++)for(let z=Math.floor((Math.min(az,bz)-.52)/2);z<=Math.floor((Math.max(az,bz)+.52)/2);z++){
+  for(const c of grassBuckets.get(`${x}:${z}`)??[]){const t=Math.max(0,Math.min(1,((c.x-ax)*dx+(c.z-az)*dz)/length));if(Math.hypot(c.x-ax-t*dx,c.z-az-t*dz)<.52)result.push(c)}
+ }
+ return result;
 }
