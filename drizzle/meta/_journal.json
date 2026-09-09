@@ -15,6 +15,13 @@
       "when": 1788978700266,
       "tag": "0001_unique_shen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788982332501,
+      "tag": "0002_lucky_ironclad",
+      "breakpoints": true
     }
   ]
 }

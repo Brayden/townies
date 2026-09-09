@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {WORK_TARGETS,TARGET_BY_ID,STATIONS,workPointOpen} from '../app/game/workTargets.ts';
+import {findPath} from '../app/game/pathfinding.ts';
+const base=process.env.TOWNIES_TEST_URL??'http://localhost:3002';
+if(!/^http:\/\/(localhost|127\.0\.0\.1):/.test(base))throw new Error('Local test towns only.');
+const prefix=`field-${Date.now()}`,pause=ms=>new Promise(r=>setTimeout(r,ms)),states=new Map();
+async function api(i,action,args={}){const r=await fetch(base+'/api/game',{method:action?'POST':'GET',headers:{'oai-authenticated-user-id':`${prefix}-${i}`,...(action?{'Content-Type':'application/json'}:{})},...(action?{body:JSON.stringify({action,...args})}:{})});const data=await r.json();if(data.resident)states.set(i,data);return{status:r.status,data}}
+async function ok(i,action,args={}){const r=await api(i,action,args);assert.equal(r.status,200,JSON.stringify(r));return r.data}
+async function move(i,t){let p=states.get(i).resident;const path=findPath({x:p.x,z:p.z},t,(x,z)=>!workPointOpen(x,z));assert.ok(path.length||Math.hypot(p.x-t.x,p.z-t.z)<.2,'Work target has a route');let batch=[],distance=0,last={x:p.x,z:p.z};for(const next of path){const segment=Math.hypot(next.x-last.x,next.z-last.z);if(distance+segment>2.8&&batch.length){await pause(420);const end=batch.at(-1);const d=await ok(i,'heartbeat',{...end,path:batch});assert.equal(d.corrected,false);batch=[];distance=0}batch.push(next);distance+=segment;last=next}if(batch.length){await pause(420);const d=await ok(i,'heartbeat',{...batch.at(-1),path:batch});assert.equal(d.corrected,false)}}
+function supplies(i,field,value){assert.ok(['papers','parcels','water','bag'].includes(field));const r=states.get(i).resident;assert.match(r.id,/^[0-9a-f-]{36}$/);execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','DB','--local','--config','wrangler.local.json','--command',`UPDATE residents SET ${field}=${value} WHERE id='${r.id}'`],{cwd:new URL('..',import.meta.url),stdio:'pipe'})}
+const town=await ok(0,'join',{mode:'private',name:'Field Worker'});await ok(1,'join',{mode:'key',key:town.town.key,name:'Other Worker'});
+for(let i=0;i<2;i++){await ok(i,'setup',{home:i,job:'paper'});await ok(i,'shift',{job:'paper'});supplies(i,'papers',1)}
+assert.equal((await api(0,'use',{target:'paper-4-door'})).status,400,'No distant deliveries');
+await Promise.all([move(0,{x:10.6,z:12.7}),move(1,{x:10.6,z:12.7})]);
+const race=await Promise.all([api(0,'use',{target:'paper-4-door'}),api(1,'use',{target:'paper-4-mailbox'})]);assert.deepEqual(race.map(r=>r.status).sort(),[200,409]);
+const winner=race[0].status===200?0:1;const a=await ok(0),b=await ok(1);assert.equal(a.resident.coins+b.resident.coins-300,4);assert.equal(a.resident.papers+b.resident.papers,1);assert.equal(a.worldWork.length,1);assert.equal(a.worldWork[0].id,'paper-home-4');assert.deepEqual(a.worldWork,b.worldWork);assert.ok(a.peers.every(p=>p.shift==='paper'));
+await ok(winner,'shift',{job:null});await ok(winner,'shift',{job:'paper'});assert.equal(states.get(winner).resident.papers,0,'Restarting cannot restock papers');assert.equal((await api(winner,'refill',{station:'supplies'})).status,400);
+await move(winner,STATIONS.find(s=>s.id==='supplies'));await ok(winner,'refill',{station:'supplies'});assert.equal(states.get(winner).resident.papers,12);
+console.log('PASS: bicycle shifts, paper placement at door OR mailbox, one shared household reward, supply consumption, saved inventory, and supply-stand refill.');
+await ok(0,'job',{job:'deliver'});await ok(0,'shift',{job:'deliver'});await move(0,TARGET_BY_ID.get('parcel-4'));const parcel=await ok(0,'use',{target:'parcel-4'});assert.equal(parcel.workReward.coins,8);assert.equal(parcel.resident.parcels,5);assert.equal((await api(0,'use',{target:'parcel-4'})).status,409);assert.ok(parcel.worldWork.some(w=>w.id==='parcel-4'));
+await ok(0,'job',{job:'clean'});await ok(0,'shift',{job:'clean'});supplies(0,'bag',7);
+const litter=WORK_TARGETS.filter(t=>t.job==='clean').sort((a,b)=>Math.hypot(a.x-8,a.z-6)-Math.hypot(b.x-8,b.z-6));await move(0,litter[0]);const pickup=await ok(0,'use',{target:litter[0].id});assert.equal(pickup.workReward.coins,3);assert.equal(pickup.resident.bag,8);await move(0,litter[1]);assert.equal((await api(0,'use',{target:litter[1].id})).status,409,'A full bag cannot collect more');await move(0,STATIONS.find(s=>s.id==='recycling'));await ok(0,'refill',{station:'recycling'});assert.equal(states.get(0).resident.bag,0);
+console.log('PASS: handcart parcels, individual litter pickups, full bags, correct payouts, duplicate rejection, and recycling.');
+const bed=TARGET_BY_ID.get('square-bed-4');for(let i=0;i<2;i++){await ok(i,'job',{job:'garden'});await ok(i,'shift',{job:'garden'});supplies(i,'water',1)}await Promise.all([move(0,bed),move(1,bed)]);
+for(let i=0;i<2;i++)await ok(i,'water-start',{target:bed.id});assert.equal((await api(0,'use',{target:bed.id})).status,400,'Water must soak before completion');await pause(2100);
+const watering=await Promise.all([api(0,'use',{target:bed.id}),api(1,'use',{target:bed.id})]);assert.deepEqual(watering.map(r=>r.status).sort(),[200,409]);const wet=await ok(0),wetOther=await ok(1);assert.equal(wet.resident.water+wetOther.resident.water,1);assert.equal(wet.worldWork.filter(w=>w.id===bed.group).length,1);assert.deepEqual(wet.worldWork,wetOther.worldWork);
+await ok(0,'cancel-water');await move(0,STATIONS.find(s=>s.id==='water'));await ok(0,'refill',{station:'water'});assert.equal(states.get(0).resident.water,8);await ok(0,'mower',{active:true});assert.equal(states.get(0).resident.shift,null);assert.equal(states.get(0).resident.wateringTarget,null);await ok(0,'shift',{job:'paper'});assert.equal(states.get(0).resident.mowing,false);
+await ok(9,'join',{mode:'private',name:'Isolated Worker'});assert.equal(states.get(9).worldWork.length,0);
+console.log('PASS: timed watering, two-gardener race, shared wet beds, water consumption/refill, mutually exclusive equipment, and town isolation.');

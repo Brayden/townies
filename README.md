@@ -11,7 +11,9 @@ An original Three.js town game with an angled orthographic camera and responsive
 - Town → Copy town code / Copy invite link works in public and private towns. Invite links prefill the welcome screen, existing codes are preserved, and joining still enforces the 50-resident cap. Preview access must separately include friends.
 - Start a shift from the persistent “Start my job” button or Work panel. Your regular career is pinned first in Work; the mower starts at your current position without setting a destination. Riding mowers cut almost 9,000 shared grass patches across town, leaving stripes and clippings; WASD/arrows, touch steering, or tap-to-drive all work.
 - Mowing earns 2 coins per fresh patch in the mowing career (1 for helpers), plus 1 XP and 1 town coin. Each grass patch regrows 24 hours after it was cut. Standing still, walking without a mower, duplicate passes, and offline movement earn nothing.
-- Other work stays in the town view: click task objects or press E, watch litter/parcels disappear and watered flowers grow, and collect a completed task’s pay from a small HUD. Claims and rewards are server validated.
+- Paper carriers ride a delivery bicycle and leave newspapers in mailboxes or at doors (4 coins each). Delivery helpers pull a handcart and leave parcels at doors (8 coins each). Paper baskets hold 12 and carts hold 6; restock at the town supply stand.
+- Street cleaners use a picker to collect individual litter (3 coins each), then empty their 8-item bag at the recycling station. Gardeners pour water onto dry beds over two seconds (6 coins each), leaving dark soil and blooming flowers; refill the 8-use can at the fountain.
+- All jobs operate on real objects: click/tap a nearby object or press E, with optional “Find next” guidance. Helpers earn one fewer coin per action. Each completed action earns XP and a town coin; shared results persist for 24 hours. Supplies persist between shifts, and concurrent claims cannot pay twice for the same object. A house accepts one newspaper per day, whether left at its door or mailbox.
 - Daily school credits, home decorations, a bicycle speed upgrade, and a shared pocket park.
 - One-second presence updates with interpolated avatars, named NPCs, and shared visibility of home improvements.
 
@@ -30,6 +32,8 @@ For service integration tests, build and run the Worker locally with `npx wrangl
 Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/mowing-api.mjs` for mowing rates, shared patch races, mounted peer state, duplicate and invalid movements, dismounting, and 24-hour regrowth (ages only the test town’s local grass timestamps to check the boundary without waiting a day). Mowing motion uses a bounded trail of positions so turns cut the actual driven route; the server validates its length and collisions.
 
 Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/mowing-route.mjs` for turns, route length validation, and collision checks.
+
+Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/field-work-api.mjs` for physical job rewards, shared claims, watering duration, supply limits, refills, gear transitions, and town isolation. It adjusts supplies only for its newly created local test residents. Run `node tests/work-targets.mjs` to verify all 300 work objects and refill stations are reachable, with unique targets and shared newspaper claims.
 
 Run `node tests/pathfinding.mjs` for obstacle routing checks, and `npx tsc --noEmit` for types. The local development preview and production Worker use the same schema but separate serving modes. Site publishing packages only the built output and schema migrations, never local test state.
 
