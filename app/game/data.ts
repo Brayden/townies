@@ -44,6 +44,8 @@ for(let row=0;row<=128;row++)for(let col=0;col<=145;col++){
  if(isGrassGround(x,z))neighborhoodGrass.push({id:`town-grass:${col}:${row}`,task:'town-grass',x,z,row,size:.8});
 }
 export const LAWN_CELLS=[...originalLawns,...neighborhoodGrass];
+// The scene and server share a slightly generous cutting radius around the mower.
+export const MOWER_CUT_RADIUS=.62;
 // Local lookups keep cutting inexpensive even with grass across the whole town.
 const grassBuckets=new Map<string,GrassCell[]>();
 for(const c of LAWN_CELLS){const key=`${Math.floor(c.x/2)}:${Math.floor(c.z/2)}`;const bucket=grassBuckets.get(key)??[];bucket.push(c);grassBuckets.set(key,bucket)}
@@ -51,8 +53,8 @@ export function sweptGrass(ax:number,az:number,bx:number,bz:number){
  const dx=bx-ax,dz=bz-az,length=dx*dx+dz*dz;
  if(length<.000001)return [];
  const result:GrassCell[]=[];
- for(let x=Math.floor((Math.min(ax,bx)-.52)/2);x<=Math.floor((Math.max(ax,bx)+.52)/2);x++)for(let z=Math.floor((Math.min(az,bz)-.52)/2);z<=Math.floor((Math.max(az,bz)+.52)/2);z++){
-  for(const c of grassBuckets.get(`${x}:${z}`)??[]){const t=Math.max(0,Math.min(1,((c.x-ax)*dx+(c.z-az)*dz)/length));if(Math.hypot(c.x-ax-t*dx,c.z-az-t*dz)<.52)result.push(c)}
+ for(let x=Math.floor((Math.min(ax,bx)-MOWER_CUT_RADIUS)/2);x<=Math.floor((Math.max(ax,bx)+MOWER_CUT_RADIUS)/2);x++)for(let z=Math.floor((Math.min(az,bz)-MOWER_CUT_RADIUS)/2);z<=Math.floor((Math.max(az,bz)+MOWER_CUT_RADIUS)/2);z++){
+  for(const c of grassBuckets.get(`${x}:${z}`)??[]){const t=Math.max(0,Math.min(1,((c.x-ax)*dx+(c.z-az)*dz)/length));if(Math.hypot(c.x-ax-t*dx,c.z-az-t*dz)<MOWER_CUT_RADIUS)result.push(c)}
  }
  return result;
 }

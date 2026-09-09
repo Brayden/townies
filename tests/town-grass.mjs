@@ -13,7 +13,7 @@ for(const [x,z] of [[-51,-35],[47,-38],[-46,36],[47,36],[-35,-8],[-35,10]])asser
 for(let i=0;i<150;i++){
  const ax=-58+(i*17.31)%116,az=-52+(i*9.27)%102,bx=ax+Math.sin(i)*6,bz=az+Math.cos(i)*6;
  const dx=bx-ax,dz=bz-az,length=dx*dx+dz*dz;
- const expected=LAWN_CELLS.filter(c=>{const t=Math.max(0,Math.min(1,((c.x-ax)*dx+(c.z-az)*dz)/length));return Math.hypot(c.x-ax-t*dx,c.z-az-t*dz)<.52}).map(c=>c.id).sort();
+ const expected=LAWN_CELLS.filter(c=>{const t=Math.max(0,Math.min(1,((c.x-ax)*dx+(c.z-az)*dz)/length));return Math.hypot(c.x-ax-t*dx,c.z-az-t*dz)<.62}).map(c=>c.id).sort();
  assert.deepEqual(sweptGrass(ax,az,bx,bz).map(c=>c.id).sort(),expected);
 }
 assert.deepEqual(sweptGrass(4,12,4,12),[]);
