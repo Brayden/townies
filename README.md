@@ -18,6 +18,8 @@ An original Three.js town game with an angled orthographic camera and responsive
 - Daily school credits, home decorations, a bicycle speed upgrade, and a shared pocket park.
 - One-second presence updates with interpolated avatars, named NPCs, and shared visibility of home improvements.
 
+Click or tap anywhere on the minimap, including building icons, to quickly aim the camera there without changing the character’s route. The follow-camera button returns to the resident; the Town directory still provides walking directions.
+
 The town square has Town Hall, Thread & Thistle clothing, the General Store, a post office, a café terrace, school, and market stalls. Fifty homes occupy North Meadows, South Orchard, Parkside, and Riverside. The west-side community park has shared flower beds, paths, and benches. Three river bridges at the north, center, and south share one collision definition across rendering, navigation, and server validation; decks have ramps and avatar height follows them. Existing home IDs and ownership remain stable; residents inside newly placed buildings are moved to nearby safe ground.
 
 Thread & Thistle sells five additional shirt colors, alongside five free starter shirts. Purchases and wardrobe changes happen at its entrance, persist on the resident, and update peer outfits. Owned shirts can be worn again for free, and concurrent purchases charge only once.
