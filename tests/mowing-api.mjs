@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {GRASS_REGROW_MS} from '../app/game/data.ts';
 const base=process.env.TOWNIES_TEST_URL??'http://localhost:3002';
 if(!/^http:\/\/(localhost|127\.0\.0\.1):/.test(base))throw new Error('Local test towns only.');
 const prefix=`mowing-${Date.now()}`,pause=ms=>new Promise(r=>setTimeout(r,ms));
@@ -30,9 +32,15 @@ await api(0,'mower',{active:true});await pause(1100);
 const helper=await api(0,'heartbeat',{x:10.5,z:6.3});assert.ok(helper.mowReward?.patches>0);assert.equal(helper.mowReward.coins,helper.mowReward.patches,'Non-career mowing pays one coin per patch');
 await pause(4200);
 const stale=await api(0,'heartbeat',{x:5.4,z:6.3});assert.equal(stale.mowReward,null,'Offline gaps cannot sweep unsent paths for money');
-console.log('PASS: mounting, visible peer mower state, shared grass persistence, per-patch coins/XP/tax, two-resident payout race, duplicate heartbeats, already-cut grass, dismount, job changes, helper rates, teleport rejection, and offline gaps. Checking natural regrowth…');
-await pause(122000);
-const regrown=await api(0);assert.equal(regrown.lawnCuts.length,0,'Grass naturally regrows after two minutes');
+console.log('PASS: mounting, visible peer mower state, shared grass persistence, per-patch coins/XP/tax, two-resident payout race, duplicate heartbeats, already-cut grass, dismount, job changes, helper rates, teleport rejection, and offline gaps. Checking the 24-hour regrowth boundary…');
+// Age only this newly-created local test town's grass, never production data.
+assert.equal(GRASS_REGROW_MS,86400000);
+assert.match(town.town.id,/^[0-9a-f-]{36}$/);
+function ageGrass(age){execFileSync(process.execPath,['node_modules/wrangler/bin/wrangler.js','d1','execute','DB','--local','--config','wrangler.local.json','--command',`UPDATE lawn_cells SET cut_at=${Date.now()-age} WHERE town_id='${town.town.id}'`],{cwd:new URL('..',import.meta.url),stdio:'pipe'})}
+ageGrass(GRASS_REGROW_MS-60000);
+assert.ok((await api(0)).lawnCuts.length>0,'Grass stays cut just before 24 hours');
+ageGrass(GRASS_REGROW_MS+1000);
+const regrown=await api(0);assert.equal(regrown.lawnCuts.length,0,'Grass regrows after 24 hours');
 await api(0,'heartbeat',{x:5.4,z:6.3});await pause(1100);
 const recut=await api(0,'heartbeat',{x:10.5,z:6.3});assert.ok(recut.mowReward?.patches>0,'Regrown grass can be cut for income again');
-console.log('PASS: natural shared regrowth and earning again on regrown grass.');
+console.log('PASS: grass stays cut before 24 hours, regrows after 24 hours, and can earn income again.');

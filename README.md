@@ -9,7 +9,7 @@ An original Three.js town game with an angled orthographic camera and responsive
 - Five starter jobs, fifty individually claimable cottages, camera previews, and an onboarding flow.
 - WASD, arrows, click/tap pathfinding, a mobile joystick, contextual actions, camera follow and zoom.
 - Start a shift from the persistent “Start my job” button or Work panel. Your regular career is pinned first in Work; the mower starts at your current position without setting a destination. Riding mowers cut almost 9,000 shared grass patches across town, leaving stripes and clippings; WASD/arrows, touch steering, or tap-to-drive all work.
-- Mowing earns 2 coins per fresh patch in the mowing career (1 for helpers), plus 1 XP and 1 town coin. Cut grass regrows after two minutes. Standing still, walking without a mower, duplicate passes, and offline movement earn nothing.
+- Mowing earns 2 coins per fresh patch in the mowing career (1 for helpers), plus 1 XP and 1 town coin. Each grass patch regrows 24 hours after it was cut. Standing still, walking without a mower, duplicate passes, and offline movement earn nothing.
 - Other work stays in the town view: click task objects or press E, watch litter/parcels disappear and watered flowers grow, and collect a completed task’s pay from a small HUD. Claims and rewards are server validated.
 - Daily school credits, home decorations, a bicycle speed upgrade, and a shared pocket park.
 - One-second presence updates with interpolated avatars, named NPCs, and shared visibility of home improvements.
@@ -26,7 +26,7 @@ Use `npm install`, `npm run dev`, and `npm run build`. The project uses the gene
 
 For service integration tests, build and run the Worker locally with `npx wrangler dev --config dist/server/wrangler.json --port 3002 --persist-to .wrangler/state`, then run `TOWNIES_TEST_URL=http://localhost:3002 node tests/game-api.mjs`. Tests inject distinct simulated dispatcher identities into the local Worker only; this test entry point is not a production authentication mechanism. Tests deliberately create local test towns and residents. The test runner refuses non-local URLs.
 
-Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/mowing-api.mjs` for mowing rates, shared patch races, mounted peer state, duplicate and invalid movements, dismounting, and natural regrowth (includes a two-minute wait). Mowing motion uses a bounded trail of positions so turns cut the actual driven route; the server validates its length and collisions.
+Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/mowing-api.mjs` for mowing rates, shared patch races, mounted peer state, duplicate and invalid movements, dismounting, and 24-hour regrowth (ages only the test town’s local grass timestamps to check the boundary without waiting a day). Mowing motion uses a bounded trail of positions so turns cut the actual driven route; the server validates its length and collisions.
 
 Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/mowing-route.mjs` for turns, route length validation, and collision checks.
 

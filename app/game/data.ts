@@ -16,7 +16,7 @@ export type Peer={id:string;name:string;color:string;x:number;z:number;mowing:bo
 export type TownState={resident:Resident;town:{id:string;name:string;private:boolean;key?:string;treasury:number;project:number;prosperity:number;residents:number};peers:Peer[];properties:{home:number;items:string[];name:string}[];occupied:number[];completed:string[];lawnCuts:string[];events:{name:string;text:string}[]};
 
 // Each patch has a stable identity shared by the scene and the authoritative server.
-export const GRASS_REGROW_MS=120000;
+export const GRASS_REGROW_MS=24*60*60*1000;
 type GrassCell={id:string;task:string;x:number;z:number;row:number;size:number};
 // Keep existing patch IDs so neighbors' recent work survives this town expansion.
 const originalLawns:GrassCell[]=TASKS.filter(t=>t.job==='mow').flatMap(t=>Array.from({length:40},(_,i)=>({id:`${t.id}:${i}`,task:t.id,x:t.x+(i%8-3.5)*.65,z:t.z+(Math.floor(i/8)-2)*.65,row:Math.floor(i/8),size:.65})));
