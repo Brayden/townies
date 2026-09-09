@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import {SCHOOL} from '../app/game/data.ts';
+import {isTownBlocked} from '../app/game/townLayout.ts';
+import {findPath} from '../app/game/pathfinding.ts';
 const base=process.env.TOWNIES_TEST_URL??'http://localhost:3001';
 if(!/^http:\/\/(localhost|127\.0\.0\.1):/.test(base))throw new Error('Integration checks only run against a local town.');
 const runId=Date.now().toString(36),user=i=>`test-${runId}-${i}`;
@@ -21,7 +24,7 @@ const before=(await api(user(0))).data.resident.coins;const finish=await Promise
 // Donations never spend below zero, even with concurrent requests.
 const donated=await Promise.all(Array.from({length:6},()=>post(0,'donate')));const afterDonations=(await api(user(0))).data;assert.ok(afterDonations.resident.coins>=0);assert.equal(afterDonations.town.project,Math.floor(after.resident.coins/25)*10);
 // School credit is saved once per real date; other town invitations are isolated.
-for(const p of [{x:-5,z:6},{x:-5,z:-3},{x:-5,z:-12},{x:-5,z:-17},{x:0,z:-19}]){await new Promise(r=>setTimeout(r,1700));assert.equal((await post(1,'heartbeat',p)).data.corrected,false)}
+{const current=(await api(user(1))).data.resident;const path=findPath(current,SCHOOL,isTownBlocked);let chunk=[],distance=0,last=current;for(const point of path){const step=Math.hypot(point.x-last.x,point.z-last.z);if(distance+step>7&&chunk.length){await new Promise(r=>setTimeout(r,1500));assert.equal((await post(1,'heartbeat',{...chunk.at(-1),path:chunk})).data.corrected,false);chunk=[];distance=0}chunk.push(point);distance+=step;last=point}if(chunk.length){await new Promise(r=>setTimeout(r,1500));assert.equal((await post(1,'heartbeat',{...chunk.at(-1),path:chunk})).data.corrected,false)}}
 assert.equal((await post(1,'study',{answer:'mayor'})).status,400);
 assert.equal((await post(1,'study',{answer:'everyone'})).status,200);
 assert.equal((await post(1,'study',{answer:'everyone'})).status,409);

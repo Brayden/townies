@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
+import {isTownBlocked} from '../app/game/townLayout.ts';
 import {LAWN_CELLS,sweptGrass,isGrassGround,HOMES,TASKS} from '../app/game/data.ts';
 const town=LAWN_CELLS.filter(c=>c.id.startsWith('town-grass:'));
-assert.ok(town.length>8000);
+assert.ok(town.length>4000);
 assert.equal(new Set(LAWN_CELLS.map(c=>c.id)).size,LAWN_CELLS.length);
 assert.equal(LAWN_CELLS.filter(c=>c.id.startsWith('mow-')).length,80);
 assert.ok(town.every(c=>isGrassGround(c.x,c.z)));
+assert.ok(LAWN_CELLS.every(c=>!isTownBlocked(c.x,c.z)),'No grass inside buildings or water');
 assert.ok(town.every(c=>Math.abs(c.x)>2.95&&Math.abs(c.z)>2.95&&!(c.x>23.1&&c.x<32.9)));
-for(const [x,z] of [[-40,-38],[40,-38],[-40,38],[40,38],[-20,12],[4,12]])assert.ok(town.some(c=>Math.hypot(c.x-x,c.z-z)<4),`Grass should grow near ${x},${z}`);
+for(const [x,z] of [[-40,-38],[40,-38],[-40,38],[40,38],[-20,12],[4,24]])assert.ok(town.some(c=>Math.hypot(c.x-x,c.z-z)<4),`Grass should grow near ${x},${z}`);
 // Compare the spatial lookup with the complete geometric answer across varied routes.
 for(let i=0;i<150;i++){
  const ax=-58+(i*17.31)%116,az=-52+(i*9.27)%102,bx=ax+Math.sin(i)*6,bz=az+Math.cos(i)*6;

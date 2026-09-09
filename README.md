@@ -9,7 +9,7 @@ An original Three.js town game with an angled orthographic camera and responsive
 - Five starter jobs, fifty individually claimable cottages, camera previews, and an onboarding flow.
 - WASD, arrows, click/tap pathfinding, and mobile steering stay relative to the camera. Drag to pan; right-drag or choose Camera → Drag to rotate for 360-degree orbit and tilt. Two-finger pinch/twist zooms and rotates. Q/R rotates, Alt+arrows pans, and follow/reset controls restore your view.
 - Town → Copy town code / Copy invite link works in public and private towns. Invite links prefill the welcome screen, existing codes are preserved, and joining still enforces the 50-resident cap. Preview access must separately include friends.
-- Start a shift from the persistent “Start my job” button or Work panel. Your regular career is pinned first in Work; the mower starts at your current position without setting a destination. Riding mowers cut almost 9,000 shared grass patches across town, leaving stripes and clippings; WASD/arrows, touch steering, or tap-to-drive all work.
+- Start a shift from the persistent “Start my job” button or Work panel. Your regular career is pinned first in Work; the mower starts at your current position without setting a destination. Riding mowers cut almost 5,000 shared grass patches across town, leaving stripes and clippings; WASD/arrows, touch steering, or tap-to-drive all work.
 - Mowing earns 2 coins per fresh patch in the mowing career (1 for helpers), plus 1 XP and 1 town coin. Each grass patch regrows 24 hours after it was cut. Standing still, walking without a mower, duplicate passes, and offline movement earn nothing.
 - Paper carriers ride a delivery bicycle and leave newspapers in mailboxes or at doors (4 coins each). Delivery helpers pull a handcart and leave parcels at doors (8 coins each). Paper baskets hold 12 and carts hold 6; restock at the town supply stand.
 - Street cleaners use a picker to collect individual litter (3 coins each), then empty their 8-item bag at the recycling station. Gardeners pour water onto dry beds over two seconds (6 coins each), leaving dark soil and blooming flowers; refill the 8-use can at the fountain.
@@ -17,6 +17,10 @@ An original Three.js town game with an angled orthographic camera and responsive
 - Paper and gardening shifts switch the zoomable minimap to shared delivery or watering status. Green checked markers are complete; gray markers need care. Four communal gardens at Pocket Park, the school, the riverside, and Meadow Commons add 24 reachable beds with paths, timber borders, and benches. Their ground is protected from mowing.
 - Daily school credits, home decorations, a bicycle speed upgrade, and a shared pocket park.
 - One-second presence updates with interpolated avatars, named NPCs, and shared visibility of home improvements.
+
+The town square has Town Hall, Thread & Thistle clothing, the General Store, a post office, a café terrace, school, and market stalls. Fifty homes occupy North Meadows, South Orchard, Parkside, and Riverside. The west-side community park has shared flower beds, paths, and benches. Three river bridges at the north, center, and south share one collision definition across rendering, navigation, and server validation; decks have ramps and avatar height follows them. Existing home IDs and ownership remain stable; residents inside newly placed buildings are moved to nearby safe ground.
+
+Thread & Thistle sells five additional shirt colors, alongside five free starter shirts. Purchases and wardrobe changes happen at its entrance, persist on the resident, and update peer outfits. Owned shirts can be worn again for free, and concurrent purchases charge only once.
 
 ## Deliberate limits
 
@@ -34,7 +38,7 @@ Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/mowing-api.mjs` for mowin
 
 Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/mowing-route.mjs` for turns, route length validation, and collision checks.
 
-Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/field-work-api.mjs` for physical job rewards, shared claims, watering duration, supply limits, refills, gear transitions, and town isolation. It adjusts supplies only for its newly created local test residents. Run `node tests/work-targets.mjs` to verify all 324 work objects and refill stations are reachable, with unique targets and shared newspaper claims.
+Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/field-work-api.mjs` for physical job rewards, shared claims, watering duration, supply limits, refills, gear transitions, and town isolation. It adjusts supplies only for its newly created local test residents. Run `node tests/work-targets.mjs` to verify all 347 work objects and refill stations are reachable, with unique targets and shared newspaper claims.
 
 Run `node tests/pathfinding.mjs` for obstacle routing checks, and `npx tsc --noEmit` for types. The local development preview and production Worker use the same schema but separate serving modes. Site publishing packages only the built output and schema migrations, never local test state.
 
@@ -49,3 +53,5 @@ Warm low-poly geometry, colorful cottage roofs, striped bazaar awnings, textured
 Run `node tests/town-grass.mjs` to verify grass coverage and indexed cutting queries, and `TOWNIES_TEST_URL=http://localhost:3002 node tests/freeroam-api.mjs` to check shared mowing income away from designated task sites. Roads, river, buildings, doorstep paths, and planted gardens are excluded from new grass.
 
 Run `node tests/camera.mjs` for camera-relative controls, rotation/tilt bounds, click-versus-drag separation, two-finger gestures, cancellation, and listener cleanup. The game API tests also cover public-town invitation generation and concurrent requests.
+
+Run `node tests/town-layout.mjs` for bridge paths, ramps, all home delivery/garden targets, public entrances, and safe positions. Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/town-layout-api.mjs` for actual server crossings on foot/bike/mower, water rejection, atomic outfit purchases, visible peer colors, item ownership, and relocation. Its small fixtures affect only a newly created local test resident.

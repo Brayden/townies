@@ -12,7 +12,7 @@ function supplies(i,field,value){assert.ok(['papers','parcels','water','bag'].in
 const town=await ok(0,'join',{mode:'private',name:'Field Worker'});await ok(1,'join',{mode:'key',key:town.town.key,name:'Other Worker'});
 for(let i=0;i<2;i++){await ok(i,'setup',{home:i,job:'paper'});await ok(i,'shift',{job:'paper'});supplies(i,'papers',1)}
 assert.equal((await api(0,'use',{target:'paper-4-door'})).status,400,'No distant deliveries');
-await Promise.all([move(0,{x:10.6,z:12.7}),move(1,{x:10.6,z:12.7})]);
+await Promise.all([move(0,{x:TARGET_BY_ID.get('paper-4-door').x+1.05,z:TARGET_BY_ID.get('paper-4-door').z-.15}),move(1,{x:TARGET_BY_ID.get('paper-4-door').x+1.05,z:TARGET_BY_ID.get('paper-4-door').z-.15})]);
 const race=await Promise.all([api(0,'use',{target:'paper-4-door'}),api(1,'use',{target:'paper-4-mailbox'})]);assert.deepEqual(race.map(r=>r.status).sort(),[200,409]);
 const winner=race[0].status===200?0:1;const a=await ok(0),b=await ok(1);assert.equal(a.resident.coins+b.resident.coins-300,4);assert.equal(a.resident.papers+b.resident.papers,1);assert.equal(a.worldWork.length,1);assert.equal(a.worldWork[0].id,'paper-home-4');assert.deepEqual(a.worldWork,b.worldWork);assert.ok(a.peers.every(p=>p.shift==='paper'));
 await ok(winner,'shift',{job:null});await ok(winner,'shift',{job:'paper'});assert.equal(states.get(winner).resident.papers,0,'Restarting cannot restock papers');assert.equal((await api(winner,'refill',{station:'supplies'})).status,400);
