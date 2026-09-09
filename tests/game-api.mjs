@@ -33,5 +33,12 @@ for(let i=2;i<50;i+=8){await Promise.all(Array.from({length:Math.min(8,50-i)},(_
 assert.equal((await post(50,'join',{mode:'key',key,name:'Overflow Neighbor'})).status,409);
 const states=await Promise.all(Array.from({length:50},(_,i)=>api(user(i))));assert.ok(states.every(r=>r.status===200&&r.data.town.residents===50));assert.equal(new Set(states.map(r=>r.data.resident.id)).size,50);
 const hearts=await Promise.all(Array.from({length:50},(_,i)=>post(i,'heartbeat',{x:i===0?2:0,z:i===0?8:6})));assert.ok(hearts.every(r=>r.status===200));
+// Invite codes also work for public towns, remain stable, and respect the same cap.
+const publicTown=await post(91,'join',{mode:'public',name:'Public Host'});assert.equal(publicTown.status,200);
+const codes=await Promise.all([post(91,'invite'),post(91,'invite')]);assert.equal(codes[0].status,200);assert.match(codes[0].data.town.key,/^[0-9A-F]{16}$/);assert.equal(codes[0].data.town.key,codes[1].data.town.key);
+const friend=await post(92,'join',{mode:'key',key:codes[0].data.town.key.toLowerCase(),name:'Public Friend'});assert.equal(friend.status,200);assert.equal(friend.data.town.id,publicTown.data.town.id);
+assert.equal((await post(0,'invite')).data.town.key,key,'Existing private codes stay unchanged');
+assert.equal((await post(93,'join',{mode:'key',key,name:'Full Town Friend'})).status,409);
+console.log('PASS: public-town codes, concurrent code creation, code persistence, private code preservation, and full-town invitation rejection.');
 const invalidKey=await post(99,'join',{mode:'key',key:'WRONG',name:'Nope'});assert.equal(invalidKey.status,404);
 console.log('PASS: private invitations, fixed membership, two-player home race, saved state, atomic purchases, proximity validation, movement validation, five-step jobs, duplicate reward protection, concurrent donation limits, 50 distinct residents, full-town rejection, and 50 concurrent presence updates.');

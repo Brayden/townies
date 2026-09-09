@@ -12,6 +12,9 @@ if(b.action==='join'){const account=req.headers.get('oai-authenticated-user-id')
 const id=crypto.randomUUID();const result=await d.prepare('INSERT INTO residents(id,token_hash,town_id,name,color,seen,created) SELECT ?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM residents WHERE town_id=?)<50 RETURNING *').bind(id,await hash(account),townId,name,COLORS.includes(b.color)?b.color:COLORS[0],now,now,townId).first<Row>();if(!result)return json({error:'This town has reached 50 residents. Please choose another town.'},409);return json(await state(result))}
 if(!r)return json({error:'Join a town or enter your resident pass first.'},401);
 if(b.action==='setup'){const job=JOBS.find(j=>j.id===b.job);const h=HOMES.find(h=>h.id===b.home);if(!job||!h)return json({error:'Choose one of the available jobs and homes.'},400);if(r.home!==null)return json(await state(r));try{await d.prepare('UPDATE residents SET job=?,home=? WHERE id=? AND home IS NULL').bind(job.id,h.id,r.id).run()}catch{return json({error:'A neighbor just chose that home. Please choose another.'},409)}await d.prepare('INSERT INTO events(id,town_id,name,text,created) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),r.town_id,r.name,`moved into ${h.name}`,now).run()}
+else if(b.action==='invite'){
+ await d.prepare('UPDATE towns SET invite=COALESCE(invite,?) WHERE id=?').bind(token().slice(0,16).toUpperCase(),r.town_id).run();
+}
 else if(b.action==='mower'){
  if(r.home===null)return json({error:'Choose your home and job first.'},400);
  await d.prepare('UPDATE residents SET mowing=? WHERE id=?').bind(b.active===true?1:0,r.id).run();
