@@ -1,3 +1,4 @@
+import {inCommunityGarden} from './gardenAreas.ts';
 export const COLORS=['#6988ab','#a66b75','#ce9e4e','#688451','#957cad'];
 export const JOBS=[
 {id:'paper',name:'Paper carrier',description:'Bring a little good news to every doorstep.',tool:'Newspaper',verb:'Deliver papers',color:'#c69351'},
@@ -21,6 +22,7 @@ type GrassCell={id:string;task:string;x:number;z:number;row:number;size:number};
 // Keep existing patch IDs so neighbors' recent work survives this town expansion.
 const originalLawns:GrassCell[]=TASKS.filter(t=>t.job==='mow').flatMap(t=>Array.from({length:40},(_,i)=>({id:`${t.id}:${i}`,task:t.id,x:t.x+(i%8-3.5)*.65,z:t.z+(Math.floor(i/8)-2)*.65,row:Math.floor(i/8),size:.65})));
 export function isGrassGround(x:number,z:number){
+ if(inCommunityGarden(x,z,.25))return false;
  if(Math.abs(x)>58||z< -53||z>50)return false;
  if(Math.abs(x)<2.95||Math.abs(z)<2.95||(Math.abs(x)<10.95&&Math.abs(z)<9.45))return false;
  if(x>23.1&&x<32.9)return false;

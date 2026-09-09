@@ -5,6 +5,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {DEFAULT_YAW,DEFAULT_PITCH,clampPitch,screenToGround,cameraOffset} from './camera';
 import {installCameraGestures} from './cameraGestures';
 import {WORK_TARGETS,TARGET_BY_ID,STATIONS} from './workTargets';
+import {GARDEN_AREAS,inCommunityGarden} from './gardenAreas';
 import {findPath} from './pathfinding';
 import {HOMES,TASKS,PARK,SCHOOL,LAWN_CELLS,sweptGrass,type Peer,type Resident} from './data';
 export type SceneApi={position:(consume?:boolean)=>{x:number;z:number;path:{x:number;z:number}[]};navigate:(x:number,z:number)=>void;center:()=>void;orbit:(yaw:number,pitch?:number)=>void;pan:(x:number,y:number)=>void;resetCamera:()=>void;stop:()=>void;zoom:(by:number)=>void;setPosition:(x:number,z:number)=>void};
@@ -33,7 +34,7 @@ box(8,.05,145,'#64b6bd',28,.1,0);box(7,.06,145,'#79c6c9',28,.13,0);for(const x o
 for(let j=0;j<16;j++){const b=box(8.6,.24,.33,'#aa8051',28,.52,-2.5+j*.34);b.receiveShadow=true;}for(const z of [-2.8,2.8]){box(9,.13,.13,'#7e6546',28,1.15,z);for(const x of [23.6,26,30,32.4])box(.15,1,.15,'#8a6b45',x,.7,z)}
 for(let j=0;j<65;j++)box(.35+rand()*1.6,.012,.06,'#b6e4dc',25+rand()*6,.17,-65+rand()*130);
 function flower(x:number,z:number,color:string,parent:THREE.Object3D=staticRoot){cylinder(.035,.35,'#648642',x,.28,z,parent);const bloom=ball(.13,color,x,.49,z,parent);bloom.scale.y=.65;ball(.05,'#efce68',x,.55,z,parent)}
-function tree(x:number,z:number,scale=1){const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);staticRoot.add(g);cylinder(.23,2.2,'#896645',0,1.1,0,g,.15);ball(1.4,'#63884d',0,2.9,0,g);ball(1.05,'#779953',-.65,2.6,.5,g);ball(1.1,'#88a45a',.65,3.2,-.1,g);ball(.85,'#99b766',-.2,3.75,0,g);}
+function tree(x:number,z:number,scale=1){if(inCommunityGarden(x,z,1.5))return;const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);staticRoot.add(g);cylinder(.23,2.2,'#896645',0,1.1,0,g,.15);ball(1.4,'#63884d',0,2.9,0,g);ball(1.05,'#779953',-.65,2.6,.5,g);ball(1.1,'#88a45a',.65,3.2,-.1,g);ball(.85,'#99b766',-.2,3.75,0,g);}
 function fence(x:number,z:number,w:number){for(let i=0;i<=w;i+=.8){box(.13,.7,.13,'#f0e0b5',x+i,.4,z);roof(.17,.17,.12,'#f0e0b5',x+i,.75,z)}box(w,.12,.1,'#e4d2aa',x+w/2,.35,z);box(w,.12,.1,'#e4d2aa',x+w/2,.63,z)}
 function bench(x:number,z:number,parent:THREE.Object3D=staticRoot){for(let i=0;i<3;i++)box(1.5,.1,.17,'#ab8051',x,.5,z+i*.19,parent);for(const a of [-.55,.55]){box(.12,.5,.48,'#535d40',x+a,.25,z+.2,parent);box(.12,1,.1,'#535d40',x+a,.5,z-.05,parent)}box(1.5,.3,.1,'#bf945c',x,.88,z-.07,parent)}
 function house(h:typeof HOMES[number]){const g=new THREE.Group();g.position.set(h.x,0,h.z);staticRoot.add(g);box(4.9,.25,4.2,'#b4b18c',0,.2,0,g);box(4.3,2.5,3.5,h.color,0,1.55,0,g);box(4.38,.18,3.6,'#efdab0',0,2.6,0,g);roof(5.1,4.2,1.75,h.roof,0,2.78,0,g);roof(4.45,3.6,1.35,'#f1dfbd',0,2.61,0,g);roof(5.1,4.2,1.75,h.roof,0,2.81,0,g);box(.48,1.1,.5,'#bf9875',1.2,3.9,-.65,g);box(.64,.14,.65,'#d5b696',1.2,4.48,-.65,g);
@@ -63,6 +64,18 @@ for(const p of [[-19,8],[-22,-7],[18,9],[19,-12],[4,-17],[-7,15],[18,17],[-18,16
 for(let i=0;i<120;i++){const x=-70+rand()*140,z=-70+rand()*140;if((Math.abs(x)<22&&Math.abs(z)<26)||(x>23&&x<33)||HOMES.some(h=>Math.abs(x-h.x)<4&&Math.abs(z-h.z)<4))continue;tree(x,z,.65+rand()*.65)}
 for(let i=0;i<340;i++){const x=-23+rand()*46,z=-19+rand()*39;if((Math.abs(x)<10.5&&Math.abs(z)<9)||HOMES.some(h=>Math.abs(x-h.x)<3.6&&Math.abs(z-h.z)<4.5))continue;rand();if(i%4===0)flower(x+.2,z,'#f3e5b7')}
 for(let i=0;i<25;i++){const x=-10+rand()*20,z=-8+rand()*16;if(Math.hypot(x,z)<2.6)continue;box(.4+rand()*.4,.018,.2,'#bfb597',x,.19,z)}
+// Shared gardens have open paths, timber beds, and places for neighbors to sit.
+for(const area of GARDEN_AREAS){
+ box(area.width,.06,area.depth,'#84a767',area.x,.17,area.z);
+ box(area.width-.4,.035,1,'#d6c49a',area.x,.22,area.z);
+ box(.8,.035,area.depth-.4,'#d6c49a',area.x,.22,area.z);
+ fence(area.x-area.width/2,area.z-area.depth/2,area.width);
+ bench(area.x+area.width/2-1,area.z+area.depth/2-.8);
+ for(const t of WORK_TARGETS.filter(t=>t.id.startsWith(`${area.id}-bed-`))){
+  for(const dz of [-.5,.5])box(1.5,.22,.12,'#a98054',t.x,.24,t.z+dz);
+  for(const dx of [-.72,.72])box(.12,.22,1,'#b18b5d',t.x+dx,.24,t.z);
+ }
+}
 // Merge static props by material to keep the village comfortable on phones.
 staticRoot.updateMatrixWorld(true);const batches=new Map<THREE.Material,THREE.BufferGeometry[]>();staticRoot.traverse(o=>{if(o instanceof THREE.Mesh){const g=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone()).applyMatrix4(o.matrixWorld);const m=o.material as THREE.Material;if(!batches.has(m))batches.set(m,[]);batches.get(m)!.push(g);o.geometry.dispose()}});scene.remove(staticRoot);for(const [m,gs]of batches){const g=mergeGeometries(gs,false);if(g){const merged=new THREE.Mesh(g,m);merged.castShadow=true;merged.receiveShadow=true;scene.add(merged)}gs.forEach(g=>g.dispose())}
 // Individual household deliveries, litter and thirsty beds replace abstract work sites.
