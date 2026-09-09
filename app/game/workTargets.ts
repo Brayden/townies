@@ -5,7 +5,7 @@ export const WORK_DAY_MS=24*60*60*1000;
 export const WORK_PAY:Record<FieldJob,number>={paper:4,clean:3,garden:6,deliver:8};
 export const CAPACITY={paper:12,clean:8,garden:8,deliver:6};
 export const STATIONS=[{id:'supplies',x:6,z:0,title:'Town supply stand',jobs:['paper','deliver']},{id:'recycling',x:-6,z:0,title:'Recycling station',jobs:['clean']},{id:'water',x:0,z:3,title:'Fountain refill',jobs:['garden']}];
-export const JOB_HINTS:Record<FieldJob,string>={paper:'Ride to a house. Press Space nearby or tap its mailbox or doorstep to leave a newspaper.',clean:'Walk up to litter and tap it to pick it up. Empty a full bag at recycling.',garden:'Tap a thirsty flower bed to water it. Watch the soil darken and flowers bloom.',deliver:'Pull your handcart to a house and tap its doorstep to leave a parcel.'};
+export const JOB_HINTS:Record<FieldJob,string>={paper:'Keep riding! Press Space in range or tap a mailbox or doorstep to throw a newspaper.',clean:'Walk up to litter and tap it to pick it up. Empty a full bag at recycling.',garden:'Tap a thirsty flower bed to water it. Watch the soil darken and flowers bloom.',deliver:'Pull your handcart to a house and tap its doorstep to leave a parcel.'};
 export function workPointOpen(x:number,z:number){return Math.abs(x)<60&&z> -58&&z<55&&!(x>23.2&&x<32.8&&Math.abs(z)>2.35)&&!HOMES.some(h=>Math.abs(x-h.x)<2.5&&Math.abs(z-h.z)<2.2)&&!(Math.abs(x)<2.1&&Math.abs(z)<2.1)&&!(Math.abs(x)<3.5&&Math.abs(z+22)<2.7)&&![7,10.2,13.4].some(a=>Math.abs(x-a)<1.5&&Math.abs(z+2.6)<1.1)}
 const targets:WorkTarget[]=[];
 for(const h of HOMES){
