@@ -9,7 +9,7 @@ An original Three.js town game with an angled orthographic camera and responsive
 - Five starter jobs, fifty individually claimable cottages, camera previews, and an onboarding flow.
 - WASD, arrows, click/tap pathfinding, and mobile steering stay relative to the camera. Drag to pan; right-drag or choose Camera → Drag to rotate for 360-degree orbit and tilt. Two-finger pinch/twist zooms and rotates. Q/R rotates, Alt+arrows pans, and follow/reset controls restore your view.
 - Town → Copy town code / Copy invite link works in public and private towns. Invite links prefill the welcome screen, existing codes are preserved, and joining still enforces the 50-resident cap. Preview access must separately include friends.
-- Start a shift from the persistent “Start my job” button or Work panel. Your regular career is pinned first in Work; the mower starts at your current position without setting a destination. Riding mowers cut almost 5,000 shared grass patches across town, leaving stripes and clippings; WASD/arrows, touch steering, or tap-to-drive all work.
+- Start a shift from the persistent “Start my job” button or Work panel. Your regular career is pinned first in Work; the mower starts at your current position without setting a destination. Riding mowers cut over 4,000 shared grass patches across town, leaving stripes and clippings; WASD/arrows, touch steering, or tap-to-drive all work.
 - Mowing earns 2 coins per fresh patch in the mowing career (1 for helpers), plus 1 XP and 1 town coin. Each grass patch regrows 24 hours after it was cut. Standing still, walking without a mower, duplicate passes, and offline movement earn nothing.
 - Paper carriers ride a delivery bicycle and leave newspapers in mailboxes or at doors (4 coins each). Delivery helpers pull a handcart and leave parcels at doors (8 coins each). Paper baskets hold 12 and carts hold 6; restock at the town supply stand.
 - Street cleaners use a picker to collect individual litter (3 coins each), then empty their 8-item bag at the recycling station. Gardeners pour water onto dry beds over two seconds (6 coins each), leaving dark soil and blooming flowers; refill the 8-use can at the fountain.
@@ -20,7 +20,9 @@ An original Three.js town game with an angled orthographic camera and responsive
 
 Click or tap anywhere on the minimap, including building icons, to quickly aim the camera there without changing the character’s route. The follow-camera button returns to the resident; the Town directory still provides walking directions.
 
-The town square has Town Hall, Thread & Thistle clothing, the General Store, a post office, a café terrace, school, and market stalls. Fifty homes occupy North Meadows, South Orchard, Parkside, and Riverside. The west-side community park has shared flower beds, paths, and benches. Three river bridges at the north, center, and south share one collision definition across rendering, navigation, and server validation; decks have ramps and avatar height follows them. Existing home IDs and ownership remain stable; residents inside newly placed buildings are moved to nearby safe ground.
+The map follows the approved straight-grid concept: a central civic square with Town Hall and shops across the northern frontage, café and post office at the sides, library and Garden Club framing the southern market stalls. A rectangular park occupies the western block, with a gazebo, playground, planted boundaries, paths, and communal beds. The school and its learning garden sit north of the square, the windmill and orchard occupy the northwest corner, and riverside cottages occupy the eastern bank. South Orchard and Harbor Lane lead to a boat shed, promenade, decorative pier and boats. Fifty homes retain their stable IDs, ownership, and purchased items, with consistent south-facing entrances, fenced lots and street access.
+
+Five bridges use the same collision definition in rendering, navigation and server validation. Roads are clipped at the river, banks have bridge openings, and decks have ramps that avatar height follows. Residents inside newly placed buildings are moved to nearby safe ground. The new Town overview camera button fits the layout to the available screen; Follow my character restores the close playing view.
 
 Thread & Thistle sells five additional shirt colors, alongside five free starter shirts. Purchases and wardrobe changes happen at its entrance, persist on the resident, and update peer outfits. Owned shirts can be worn again for free, and concurrent purchases charge only once.
 
@@ -40,13 +42,13 @@ Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/mowing-api.mjs` for mowin
 
 Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/mowing-route.mjs` for turns, route length validation, and collision checks.
 
-Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/field-work-api.mjs` for physical job rewards, shared claims, watering duration, supply limits, refills, gear transitions, and town isolation. It adjusts supplies only for its newly created local test residents. Run `node tests/work-targets.mjs` to verify all 347 work objects and refill stations are reachable, with unique targets and shared newspaper claims.
+Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/field-work-api.mjs` for physical job rewards, shared claims, watering duration, supply limits, refills, gear transitions, and town isolation. It adjusts supplies only for its newly created local test residents. Run `node tests/work-targets.mjs` to verify all 349 work objects and refill stations are reachable, with unique targets and shared newspaper claims.
 
 Run `node tests/pathfinding.mjs` for obstacle routing checks, and `npx tsc --noEmit` for types. The local development preview and production Worker use the same schema but separate serving modes. Site publishing packages only the built output and schema migrations, never local test state.
 
 ## Validation notes
 
-The service checks cover private invitations, home claim races, persistence, purchases, duplicate rewards, donation limits, daily school credit, isolation, 50 resident slots, and concurrent presence updates. Browser interaction and visual QA were not run in this task. The optional WebMCP progress and navigation tools are feature-detected; no supported WebMCP validation context was available, so their runtime contracts remain unverified.
+The service checks cover private invitations, home claim races, persistence, purchases, duplicate rewards, donation limits, daily school credit, isolation, 50 resident slots, and concurrent presence updates. The concept-layout update was visually checked in the local browser at overview and street scale, including onboarding, minimap camera inspection, the civic center and windmill district. The optional WebMCP progress and navigation tools are feature-detected; their runtime contracts remain unverified beyond registration.
 
 ## Visual direction
 

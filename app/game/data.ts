@@ -8,8 +8,8 @@ export const JOBS=[
 {id:'garden',name:'Community gardener',description:'Help the neighborhood bloom.',tool:'Watering can',verb:'Tend the flowers',color:'#b384a7'},
 {id:'deliver',name:'Delivery helper',description:'Keep the little shops stocked and happy.',tool:'Parcel',verb:'Deliver the parcel',color:'#b57f55'},
 ];
-export const HOMES=HOME_LOTS.map((p,i)=>{const names=['Clover Cottage','Honeycomb House','Bluebell Nook','Rosemary Retreat','Peachwood Place','Fern Hollow'];const district=i<20?'North Meadows':i<40?'South Orchard':i<45?'Parkside':'Riverside';return{id:i,name:i<6?names[i]:`${i+1} ${district}`,x:p.x,z:p.z,color:['#e5c992','#e7ba9e','#d4dfbf','#e4c8aa','#eed6a1','#d8d7b3'][i%6],roof:['#b66549','#627e79','#677d9a','#bd8361','#b57761','#71855e'][i%6],description:`${district} · a garden and a welcoming front porch`}});
-export const TASKS=[{id:'paper-1',job:'paper',x:-9,z:-4,title:'Good news on Clover Lane'},{id:'clean-1',job:'clean',x:-6,z:3,title:'A tidy town square'},{id:'mow-1',job:'mow',x:8,z:5,title:'Freshen the village green'},{id:'garden-1',job:'garden',x:-12,z:3,title:'A little more color'},{id:'deliver-1',job:'deliver',x:6,z:-2,title:'Supplies for the market'},{id:'paper-2',job:'paper',x:8,z:-5,title:'The morning round'},{id:'clean-2',job:'clean',x:2,z:8,title:'Sweep the fountain path'},{id:'mow-2',job:'mow',x:-5.9,z:6,title:'A neat cottage lawn'},{id:'garden-2',job:'garden',x:3,z:-7,title:'Water the square planters'},{id:'deliver-2',job:'deliver',x:-6,z:-11,title:'A school supply delivery'}];
+export const HOMES=HOME_LOTS.map((p,i)=>{const names=['Clover Cottage','Honeycomb House','Bluebell Nook','Rosemary Retreat','Peachwood Place','Fern Hollow'];const district=p.district;return{id:i,name:i<6?names[i]:`${i+1} ${district}`,x:p.x,z:p.z,color:['#e5c992','#e7ba9e','#d4dfbf','#e4c8aa','#eed6a1','#d8d7b3'][i%6],roof:['#b66549','#627e79','#677d9a','#bd8361','#b57761','#71855e'][i%6],description:`${district} · a garden and a welcoming front porch`}});
+export const TASKS=[{id:'paper-1',job:'paper',x:-9,z:-4,title:'Good news on Clover Lane'},{id:'clean-1',job:'clean',x:-6,z:3,title:'A tidy town square'},{id:'mow-1',job:'mow',x:-34,z:-8,title:'Freshen the village green'},{id:'garden-1',job:'garden',x:-12,z:3,title:'A little more color'},{id:'deliver-1',job:'deliver',x:6,z:-2,title:'Supplies for the market'},{id:'paper-2',job:'paper',x:8,z:-5,title:'The morning round'},{id:'clean-2',job:'clean',x:2,z:8,title:'Sweep the fountain path'},{id:'mow-2',job:'mow',x:-35,z:10,title:'A neat cottage lawn'},{id:'garden-2',job:'garden',x:3,z:-7,title:'Water the square planters'},{id:'deliver-2',job:'deliver',x:-6,z:-11,title:'A school supply delivery'}];
 export const SCHOOL=entrance(BUILDINGS.find(b=>b.id==='school')!);
 export const PARK={x:COMMUNITY_PARK.x+6,z:COMMUNITY_PARK.z+4};
 export const SHOP=[{id:'flowers',name:'Porch flowers',price:80,description:'A bright little welcome at your front door.'},{id:'bench',name:'Garden bench',price:180,description:'Your very own spot to watch the world go by.'},{id:'bike',name:'Town bicycle',price:350,description:'Cruise around town a little faster.'},{id:'home',name:'Cottage extension',price:1200,description:'A bigger porch and a very proud front garden.'}];
@@ -24,11 +24,15 @@ type GrassCell={id:string;task:string;x:number;z:number;row:number;size:number};
 const originalLawns:GrassCell[]=TASKS.filter(t=>t.job==='mow').flatMap(t=>Array.from({length:40},(_,i)=>({id:`${t.id}:${i}`,task:t.id,x:t.x+(i%8-3.5)*.65,z:t.z+(Math.floor(i/8)-2)*.65,row:Math.floor(i/8),size:.65})));
 export function isGrassGround(x:number,z:number){
  if(Math.abs(x)>58||z< -53||z>50||inCommunityGarden(x,z,.25)||isTownBlocked(x,z))return false;
- if(x>23.1&&x<32.9||Math.abs(x)<2.95||Math.abs(z)<2.95)return false;
- if(Math.abs(x)<19&&Math.abs(z)<21)return false;
+ if(x>23.1&&x<32.9)return false;
+ if(Math.abs(x)<21&&Math.abs(z)<19)return false;
  if(ROADS.some(r=>Math.abs(x-r.x)<r.width/2+.4&&Math.abs(z-r.z)<r.depth/2+.4))return false;
- if(Math.abs(x-COMMUNITY_PARK.x)<COMMUNITY_PARK.width/2&&Math.abs(z)<COMMUNITY_PARK.depth/2)return false;
- if(HOMES.some(h=>(Math.abs(x-h.x)<3.9&&Math.abs(z-h.z)<3.4)||(Math.abs(x-h.x-.55)<1&&z>h.z+1.5&&z<h.z+5.35)))return false;
+ if(Math.abs(x-COMMUNITY_PARK.x)<COMMUNITY_PARK.width/2&&Math.abs(z)<COMMUNITY_PARK.depth/2){
+  if([-54,-42,-29].some(px=>Math.abs(x-px)<1.2)||[-15,0,15].some(pz=>Math.abs(z-pz)<1.2)||Math.hypot(x+42,z+3)<3.4||Math.abs(x+49)<5&&Math.abs(z+9)<3||Math.abs(z)>16||x< -55||x> -27)return false;
+ }
+ if(Math.abs(x+7)<1.3&&z>-33&&z< -23)return false;
+ if(HOMES.some(h=>(Math.abs(x-h.x)<2.85&&Math.abs(z-h.z)<2.8)||(Math.abs(x-h.x-.55)<1&&z>h.z+1.5&&z<h.z+5.35)))return false;
+ if(HOMES.some(h=>Math.abs(x-h.x+3.35)<1&&Math.abs(z-h.z-1.9)<1))return false;
  if(TASKS.some(t=>t.job==='garden'&&Math.hypot(x-t.x,z-t.z)<1.6))return false;
  if(TASKS.some(t=>t.job==='mow'&&Math.abs(x-t.x)<3&&Math.abs(z-t.z)<2))return false;
  return true;

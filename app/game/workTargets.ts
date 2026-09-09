@@ -17,7 +17,7 @@ for(const h of HOMES){
  targets.push({id:`bed-${h.id}`,group:`bed-${h.id}`,job:'garden',kind:'bed',x:h.x-3.35,z:h.z+1.9,title:`${h.name} flower bed`,home:h.id});
 }
 for(let i=0;i<20;i++){const x=-8+(i%5)*3.6,z=-5.5+Math.floor(i/5)*3.4;targets.push({id:`square-litter-${i}`,group:`square-litter-${i}`,job:'clean',kind:'litter',x,z,title:'Tidy the town square'})}
-for(const [i,x,z] of [[0,-7,3],[1,3,-7],[2,-38,5],[3,-32,5],[4,3,13],[5,-3,13]])targets.push({id:`square-bed-${i}`,group:`square-bed-${i}`,job:'garden',kind:'bed',x,z,title:'Community flower bed'});
-for(const area of GARDEN_AREAS)for(let i=0;i<6;i++){const id=`${area.id}-bed-${i}`;targets.push({id,group:id,job:'garden',kind:'bed',x:area.x+(i%3-1)*2,z:area.z+(i<3?-1.5:1.5),title:`${area.name} · bed ${i+1}`})}
+for(const [i,x,z] of [[0,-7,3],[1,3,-7],[2,-49,6],[3,-45,6],[4,10,16],[5,-10,16]])targets.push({id:`square-bed-${i}`,group:`square-bed-${i}`,job:'garden',kind:'bed',x,z,title:'Community flower bed'});
+for(const area of GARDEN_AREAS)for(let i=0;i<6;i++){const id=`${area.id}-bed-${i}`;targets.push({id,group:id,job:'garden',kind:'bed',x:area.x+(i%3-1)*2,z:area.z+(i<3?-1:1)*Math.min(1.5,(area.depth-1.2)/2),title:`${area.name} · bed ${i+1}`})}
 export const WORK_TARGETS=targets.filter(t=>workPointOpen(t.x,t.z));
 export const TARGET_BY_ID=new Map(WORK_TARGETS.map(t=>[t.id,t]));

@@ -18,7 +18,7 @@ assert.equal((await call('outfit',{outfit:'outfit-crimson'})).status,400,'Cannot
 for(const [i,bridge]of BRIDGES.entries()){
  if(i===0)await ok('shift',{job:null});else if(i===1)await ok('shift',{job:'paper'});else await ok('mower',{active:true});
  await move({x:20,z:bridge.z});await move({x:36,z:bridge.z});await move({x:20,z:bridge.z});
- await move({x:28,z:bridge.z});await pause(1100);const invalid=await ok('heartbeat',{x:28,z:bridge.z+5});assert.equal(invalid.corrected,true,'River outside the deck stays blocked');assert.equal(invalid.resident.z,bridge.z);await move({x:20,z:bridge.z});
+ await move({x:28,z:bridge.z});await pause(1100);const invalid=await ok('heartbeat',{x:28,z:bridge.z+(bridge.z>45?-5:5)});assert.equal(invalid.corrected,true,'River outside the deck stays blocked');assert.equal(invalid.resident.z,bridge.z);await move({x:20,z:bridge.z});
  console.log(`PASS: ${bridge.id} bridge crosses both ways ${i===0?'on foot':i===1?'by bicycle':'on a mower'}; adjacent water is blocked.`);
 }
 await ok('mower',{active:false});await move(entrance(BUILDINGS.find(b=>b.id==='clothing')));fixture('coins=1000');await ok();
@@ -27,5 +27,5 @@ await ok('outfit',{outfit:'outfit-blue'});assert.equal(state.resident.coins,910)
 await call('join',{mode:'key',key:state.town.key,name:'Outfit Neighbor'},identity+'-peer');const neighbor=await call(undefined,{},identity+'-peer');assert.equal(neighbor.data.peers.find(p=>p.id===state.resident.id).color,state.resident.color);
 await move(entrance(BUILDINGS.find(b=>b.id==='general')));await ok('buy',{item:'bike'});assert.equal(state.resident.coins,560);assert.ok(state.resident.items.includes('bike'));assert.equal((await call('buy',{item:'bike'})).status,409);
 await move(entrance(BUILDINGS.find(b=>b.id==='clothing')));fixture('coins=0');await ok();assert.equal((await call('outfit',{outfit:'outfit-teal'})).status,409);assert.equal((await call('outfit',{outfit:'invented-outfit'})).status,400);await ok('outfit',{outfit:'outfit-crimson'});assert.equal(state.resident.coins,0);
-fixture('x=0,z=-14');await ok();assert.ok(!isTownBlocked(state.resident.x,state.resident.z));assert.equal(state.resident.home,0);assert.ok(state.resident.items.includes('bike'));assert.ok(state.resident.items.includes('outfit-crimson'));
+fixture('x=0,z=-11');await ok();assert.ok(!isTownBlocked(state.resident.x,state.resident.z));assert.equal(state.resident.home,0);assert.ok(state.resident.items.includes('bike'));assert.ok(state.resident.items.includes('outfit-crimson'));
 console.log('PASS: atomic clothing purchases, free wardrobe changes, visible peer outfits, general-store bikes, insufficient funds, and safe relocation without losing ownership.');
