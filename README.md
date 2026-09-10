@@ -68,3 +68,14 @@ The transparent town header shows the season, the sitting mayor when there is on
 Elections use UTC, with voting from the 21st through the 30th inclusive, ending on February's last day. Residents who have selected a home and job may nominate themselves, including during voting, and have one changeable vote per monthly election. Each town has its own candidates and ballots. The highest vote total wins after polls close; ties go to the earliest nomination, then resident ID for identical timestamps. If an election receives no votes, the previous mayor remains. The mayor is a saved election result; spending powers and campaigns are future work.
 
 New migration `0003_volatile_shen.sql` adds candidates and votes with composite uniqueness and a candidate foreign key. Server time determines eligibility windows; client-supplied dates cannot change them. `node tests/elections.mjs` tests the real SQL on a migrated in-memory SQLite database with explicit calendar boundaries, ties, eligibility, deduplication and isolation. `node tests/elections-api.mjs` checks the built local Worker's authenticated nomination and ballot routes against disposable test towns. UI changes were build/type-checked; this pass did not include a device rendering benchmark.
+
+
+### Candidate contributions
+
+“Meet the candidates” compares work XP and days worked for the current UTC calendar month and overall, with expandable counts for grass patches, newspapers, litter, garden beds, parcels, town tasks, taxes, and donated coins. The current month remains separate from the next ballot cycle on a month's 31st day. Candidate join dates provide tenure context. Donations do not earn work XP or create a worked day; online or idle time does not count.
+
+Migration `0004_orange_blob.sql` adds a daily contribution summary keyed by town, resident, and UTC date. Each completed action records its contribution in the same D1 batch as its guarded payout/completion, so duplicates and shared-target races cannot claim extra credit. Records accumulate before nomination and across job changes. Queries include only the current town's candidates and use the summary's composite primary key.
+
+Existing resident XP remains the complete overall work-XP total because residents are fixed to their town. Older job counts, work dates, taxes, and donations were not retained with resident attribution and cannot be reconstructed; the ballot explicitly says detailed and monthly records begin with this update. No historical monthly credit is invented.
+
+`node tests/contributions.mjs` verifies actual SQL with month boundaries, the 31st, earlier XP, pre-nomination activity, town isolation and empty records. `node tests/contributions-api.mjs` verifies all reward paths, duplicate/shared-target races, timed gardening, donations, task completion, and mower totals against disposable local towns.
