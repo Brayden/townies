@@ -1,11 +1,12 @@
 'use client';
 import {Coins,Settings,Vote,UserRoundPlus} from 'lucide-react';
+import {projectById} from './civicProjects';
 import type {TownState} from './data';
-type Props={data:TownState|null;active:boolean;onElection:()=>void;onSettings:()=>void};
-export default function TownHeader({data,active,onElection,onSettings}:Props){
+type Props={data:TownState|null;active:boolean;onElection:()=>void;onTown:()=>void;onSettings:()=>void};
+export default function TownHeader({data,active,onElection,onSettings,onTown}:Props){
  const e=data?.election;
  return <header className="hud topbar">
-  <div className="brand"><div className="wordmark">townies<span>.</span></div></div>
+  <div className="brand"><div className="wordmark">townies<span>.</span></div>{active&&<button className="brand-project" onClick={onTown}>{projectById(data?.civic.featured)?.name??'Our town’s next chapter'}</button>}</div>
   <div className="civic-status">
    <div className="season-label">Spring in {data?.town.name??'Willowbrook'}</div>
    {e?.mayor&&<div className="mayor-label">Mayor <strong>{e.mayor.name}</strong></div>}

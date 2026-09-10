@@ -1,3 +1,4 @@
+import type {CivicState} from './civicProjects';
 import type {ElectionState} from './elections';
 import {inCommunityGarden} from './gardenAreas.ts';
 import {HOME_LOTS,BUILDINGS,entrance,COMMUNITY_PARK,ROADS,isTownBlocked} from './townLayout.ts';
@@ -16,7 +17,7 @@ export const PARK={x:COMMUNITY_PARK.x+6,z:COMMUNITY_PARK.z+4};
 export const SHOP=[{id:'flowers',name:'Porch flowers',price:80,description:'A bright little welcome at your front door.'},{id:'bench',name:'Garden bench',price:180,description:'Your very own spot to watch the world go by.'},{id:'bike',name:'Town bicycle',price:350,description:'Cruise around town a little faster.'},{id:'home',name:'Cottage extension',price:1200,description:'A bigger porch and a very proud front garden.'}];
 export type Resident={id:string;name:string;color:string;home:number|null;job:string|null;coins:number;xp:number;education:number;lastStudy:string|null;x:number;z:number;items:string[];mowing:boolean;shift:string|null;papers:number;parcels:number;water:number;bag:number;wateringTarget:string|null;wateringStarted:number};
 export type Peer={id:string;name:string;color:string;x:number;z:number;mowing:boolean;shift:string|null;papers:number;parcels:number;water:number;bag:number;wateringTarget:string|null;wateringStarted:number};
-export type TownState={election:ElectionState;resident:Resident;town:{id:string;name:string;private:boolean;key?:string;treasury:number;project:number;prosperity:number;residents:number};peers:Peer[];properties:{home:number;items:string[];name:string}[];occupied:number[];completed:string[];worldWork:{id:string;target:string;completed:number}[];lawnCuts:string[];events:{name:string;text:string}[]};
+export type TownState={election:ElectionState;civic:CivicState;resident:Resident;town:{id:string;name:string;private:boolean;key?:string;treasury:number;project:number;prosperity:number;residents:number};peers:Peer[];properties:{home:number;items:string[];name:string}[];occupied:number[];completed:string[];worldWork:{id:string;target:string;completed:number}[];lawnCuts:string[];events:{name:string;text:string}[]};
 
 // Each patch has a stable identity shared by the scene and the authoritative server.
 export const GRASS_REGROW_MS=24*60*60*1000;
