@@ -57,6 +57,13 @@
       "when": 1789008362239,
       "tag": "0007_lame_jackpot",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1789009914292,
+      "tag": "0008_legal_marvel_apes",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@
 import {Check,MapPin,RefreshCw,Trees,Newspaper,Brush,Flower2,Package} from 'lucide-react';
 import {Progress} from '@/components/ui/progress';
 import {JOBS,type Resident} from './data';
+import {capacity} from './lifestyle';
 import {JOB_HINTS,type FieldJob} from './workTargets';
 
 type Props={resident:Resident;busy:boolean;patches:number;coins:number;completed:number;waterProgress:number;onFindNext:()=>void;onVisitStation:()=>void;onFinish:()=>void};
@@ -9,7 +10,7 @@ const icons={mow:Trees,paper:Newspaper,clean:Brush,garden:Flower2,deliver:Packag
 export default function JobDock({resident,busy,patches,coins,completed,waterProgress,onFindNext,onVisitStation,onFinish}:Props){
  const mowing=resident.mowing,job=mowing?'mow':resident.shift as FieldJob,Icon=icons[job];
  const watering=!!resident.wateringTarget;
- const supplies=job==='paper'?`${resident.papers}/12 papers`:job==='deliver'?`${resident.parcels}/6 parcels`:job==='garden'?`${resident.water}/8 water`:`${resident.bag}/8 litter`;
+ const supplies=job==='paper'?`${resident.papers}/${capacity(job,resident.items)} papers`:job==='deliver'?`${resident.parcels}/${capacity(job,resident.items)} parcels`:job==='garden'?`${resident.water}/${capacity(job,resident.items)} water`:`${resident.bag}/${capacity(job,resident.items)} litter`;
  const refill=job==='clean'?'Recycling':job==='garden'?'Refill water':'Restock';
  const hint=mowing?'Mow anywhere you find tall grass. Grass regrows 24 hours after cutting.':JOB_HINTS[job as FieldJob];
  return <nav className={`hud bottom-dock paper job-dock ${mowing?'mowing-dock':''}`} aria-label="Job shift controls">

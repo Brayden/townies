@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {Check,BookOpen,Sprout,Mailbox,Flower2,Landmark,Shirt,Store,Coffee,GraduationCap,Map as MapIcon,Minus,Plus,X} from 'lucide-react';
+import {Package,Check,BookOpen,Sprout,Mailbox,Flower2,Landmark,Shirt,Store,Coffee,GraduationCap,Map as MapIcon,Minus,Plus,X} from 'lucide-react';
 import {HOMES,type TownState} from './data';
 import {WORK_TARGETS,WORK_DAY_MS} from './workTargets';
 import {GARDEN_AREAS} from './gardenAreas';
@@ -15,7 +15,7 @@ export default function MiniMap({data,getPosition,onLook}:{data:TownState;getPos
  const [level,setLevel]=useState(0),[open,setOpen]=useState(false),[position,setPosition]=useState({x:data.resident.x,z:data.resident.z});
  useEffect(()=>{const timer=setInterval(()=>{const p=getPosition();if(p)setPosition({x:p.x,z:p.z})},100);return()=>clearInterval(timer)},[getPosition]);
  const buildings=townBuildings(data.planning),expanded=data.planning.territories.length>0;
- const paper=data.resident.shift==='paper',garden=data.resident.shift==='garden',route=paper||garden,stops=paper?paperStops:gardenStops,Marker=paper?Mailbox:Flower2,zoom=ZOOMS[level],span=(expanded?208:128)/zoom;
+ const paper=data.resident.shift==='paper',garden=data.resident.shift==='garden',parcel=data.resident.shift==='deliver',route=paper||garden||parcel,stops=paper?paperStops:parcel?WORK_TARGETS.filter(t=>t.job==='deliver'&&data.parcelHomes?.includes(t.home!)):gardenStops,Marker=paper?Mailbox:parcel?Package:Flower2,zoom=ZOOMS[level],span=(expanded?208:128)/zoom;
  const clamp=(v:number,min:number,max:number)=>span>=max-min?(min+max)/2:Math.max(min+span/2,Math.min(max-span/2,v));
  const cx=clamp(position.x,-64,expanded?116:64),cz=clamp(position.z,expanded?-99:-64,expanded?101:64),unit=span/220;
  const delivered=new Set(data.worldWork.filter(w=>Date.now()-w.completed<WORK_DAY_MS).map(w=>w.id));
@@ -26,9 +26,9 @@ export default function MiniMap({data,getPosition,onLook}:{data:TownState;getPos
   const world=point.matrixTransform(matrix.inverse());onLook(world.x,world.y);
  }
  return <section className={`town-minimap ${open?'is-open':''}`} aria-label={paper?'Paper delivery minimap':garden?'Community gardening minimap':'Town minimap'} onKeyDown={e=>e.stopPropagation()}>
-  <button className="minimap-mobile-toggle secondary-button" onClick={()=>setOpen(v=>!v)} aria-expanded={open} aria-controls="town-minimap-content">{open?<X size={18}/>:route?<Marker size={18}/>:<MapIcon size={18}/>} {open?'Close map':paper?'Mail route':garden?'Garden map':'Town map'}</button>
+  <button className="minimap-mobile-toggle secondary-button" onClick={()=>setOpen(v=>!v)} aria-expanded={open} aria-controls="town-minimap-content">{open?<X size={18}/>:route?<Marker size={18}/>:<MapIcon size={18}/>} {open?'Close map':paper?'Mail route':parcel?'Parcel route':garden?'Garden map':'Town map'}</button>
   <div className="minimap-content paper" id="town-minimap-content">
-   <div className="minimap-heading"><strong>{paper?'Paper route':garden?'Garden care':data.town.name}</strong><span>N ↑</span></div>
+   <div className="minimap-heading"><strong>{paper?'Paper route':parcel?'Parcel route':garden?'Garden care':data.town.name}</strong><span>N ↑</span></div>
    <svg className="town-minimap-map" onClick={e=>lookFromMap(e.currentTarget,e.clientX,e.clientY)} style={{cursor:'crosshair'}} aria-describedby="minimap-look-hint" viewBox={`${cx-span/2} ${cz-span/2} ${span} ${span}`} role="img" aria-label={paper?`${count} of ${stops.length} houses delivered. Green checked mailboxes are delivered; gray mailboxes are waiting.`:garden?`${count} of ${stops.length} beds watered. Green checked flowers are watered; gray flowers need water.`:'Town streets, homes, neighbors, and your position.'}>
     <rect x="-80" y="-110" width="220" height="230" fill="#78bbc9"/>{TERRITORIES.filter(t=>data.planning.territories.includes(t.id)).map(t=><rect key={t.id} x={t.x-t.width/2} y={t.z-t.depth/2} width={t.width} height={t.depth} fill="#b0c888"/>)}<rect x="-64" y="-64" width="128" height="128" fill="#afc487"/>
     {[...ROADS,...expansionRoads(data.planning)].map((r,i)=><rect key={i} x={r.x-r.width/2} y={r.z-r.depth/2} width={r.width} height={r.depth} fill="#e5d5ad"/>)}
@@ -41,12 +41,12 @@ export default function MiniMap({data,getPosition,onLook}:{data:TownState;getPos
     {data.planning.territories.includes('island')&&FERRY_STOPS.map(f=><circle key={f.id} cx={f.x} cy={f.z} r={3*unit} fill="#eecc7b" stroke="#48677b" strokeWidth={unit}><title>{f.name}</title></circle>)}
     <circle r="1.6" fill="#79adb6"/>
     {data.peers.filter(p=>p.id!==data.resident.id).map(p=><circle key={p.id} cx={p.x} cy={p.z} r={2.4*unit} fill="#375c60" stroke="#fffbea" strokeWidth={unit}><title>{p.name}</title></circle>)}
-    {route&&stops.map(t=>{const done=delivered.has(t.group),size=12*unit;return <g key={t.group}><title>{t.title} · {done?(paper?'Paper delivered':'Watered'):(paper?'Awaiting newspaper':'Needs water')}</title><rect x={t.x-size/2-unit} y={t.z-size/2-unit} width={size+2*unit} height={size+2*unit} rx={2*unit} fill={done?'#e2f8d8':'#f3f2ea'} stroke={done?'#257440':'#787e82'} strokeWidth={unit}/><Marker x={t.x-size/2} y={t.z-size/2} width={size} height={size} color={done?'#257440':'#787e82'} strokeWidth={2.6}/>{done&&<Check x={t.x+size/5} y={t.z-size*.7} width={size*.65} height={size*.65} color="#154d28" strokeWidth={4}/>}</g>})}
+    {route&&stops.map(t=>{const done=delivered.has(t.group),size=12*unit;return <g key={t.group}><title>{t.title} · {done?(paper?'Paper delivered':parcel?'Parcel delivered':'Watered'):(paper?'Awaiting newspaper':parcel?'Awaiting parcel':'Needs water')}</title><rect x={t.x-size/2-unit} y={t.z-size/2-unit} width={size+2*unit} height={size+2*unit} rx={2*unit} fill={done?'#e2f8d8':'#f3f2ea'} stroke={done?'#257440':'#787e82'} strokeWidth={unit}/><Marker x={t.x-size/2} y={t.z-size/2} width={size} height={size} color={done?'#257440':'#787e82'} strokeWidth={2.6}/>{done&&<Check x={t.x+size/5} y={t.z-size*.7} width={size*.65} height={size*.65} color="#154d28" strokeWidth={4}/>}</g>})}
     <circle cx={position.x} cy={position.z} r={4.5*unit} fill="#fffbea" stroke="#244b67" strokeWidth={2*unit}><title>You</title></circle>
     <circle cx={position.x} cy={position.z} r={1.5*unit} fill="#244b67"/>
    </svg>
    <p className="minimap-look-hint" id="minimap-look-hint">Click or tap the map to look around.</p>
-   {route&&<div className="minimap-status"><span className="delivered"><Marker size={15}/><Check size={12}/> {paper?'Delivered':'Watered'}</span><span><Marker size={15}/> {paper?'Waiting':'Needs water'}</span><strong>{count}/{stops.length} {paper?'delivered':'beds watered'}</strong></div>}
+   {parcel&&<p className="minimap-look-hint">38 homes today · new route at midnight UTC</p>}{route&&<div className="minimap-status"><span className="delivered"><Marker size={15}/><Check size={12}/> {paper||parcel?'Delivered':'Watered'}</span><span><Marker size={15}/> {paper||parcel?'Waiting':'Needs water'}</span><strong>{count}/{stops.length} {paper||parcel?'delivered':'beds watered'}</strong></div>}
    <div className="minimap-zoom"><button className="secondary-button" aria-label="Zoom minimap out" disabled={level===0} onClick={()=>setLevel(v=>Math.max(0,v-1))}><Minus size={18}/></button><button className="secondary-button minimap-fit" onClick={()=>setLevel(0)} aria-label="Show whole town on minimap">{zoom===1?'Whole town':`${zoom}× · Fit town`}</button><button className="secondary-button" aria-label="Zoom minimap in" disabled={level===ZOOMS.length-1} onClick={()=>setLevel(v=>Math.min(ZOOMS.length-1,v+1))}><Plus size={18}/></button></div>
   </div>
  </section>;

@@ -7,7 +7,7 @@ export const WORK_DAY_MS=24*60*60*1000;
 export const WORK_PAY:Record<FieldJob,number>={paper:4,clean:3,garden:6,deliver:8};
 export const CAPACITY={paper:12,clean:8,garden:8,deliver:6};
 export const STATIONS=[{id:'supplies',...entrance(BUILDINGS.find(b=>b.id==='post')!),title:'Town supply stand',jobs:['paper','deliver']},{id:'recycling',x:-6,z:0,title:'Recycling station',jobs:['clean']},{id:'water',x:0,z:3,title:'Fountain refill',jobs:['garden']}];
-export const JOB_HINTS:Record<FieldJob,string>={paper:'Keep riding! Press Space in range or tap a mailbox or doorstep to throw a newspaper.',clean:'Walk up to litter and tap it to pick it up. Empty a full bag at recycling.',garden:'Follow gray flowers on your map to thirsty beds at homes and community gardens. Tap a bed to water it.',deliver:'Pull your handcart to a house and tap its doorstep to leave a parcel.'};
+export const JOB_HINTS:Record<FieldJob,string>={paper:'Keep riding! Press Space in range or tap a mailbox or doorstep to throw a newspaper.',clean:'Walk up to litter and tap it to pick it up. Empty a full bag at recycling.',garden:'Follow gray flowers on your map to thirsty beds at homes and community gardens. Tap a bed to water it.',deliver:'Follow parcel pins to today’s 38 homes. Pull your handcart to a marked doorstep and leave its parcel. New route at midnight UTC.'};
 export function workPointOpen(x:number,z:number){return !isTownBlocked(x,z)}
 const targets:WorkTarget[]=[];
 for(const h of HOMES){
