@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {Tractor,LockKeyhole,Package,Check,BookOpen,Sprout,Mailbox,Flower2,Landmark,Shirt,Store,Coffee,GraduationCap,Map as MapIcon,Minus,Plus,X} from 'lucide-react';
+import {PawPrint,Tractor,LockKeyhole,Package,Check,BookOpen,Sprout,Mailbox,Flower2,Landmark,Shirt,Store,Coffee,GraduationCap,Map as MapIcon,Minus,Plus,X} from 'lucide-react';
 import {TOWN_FARM,FARM_GATE,farmIsOpen} from './townFarm';
 import {HOMES,type TownState} from './data';
 import {WORK_TARGETS,WORK_DAY_MS} from './workTargets';
@@ -39,7 +39,7 @@ export default function MiniMap({data,getPosition,onLook}:{data:TownState;getPos
     <rect x={COMMUNITY_PARK.x-COMMUNITY_PARK.width/2} y={-COMMUNITY_PARK.depth/2} width={COMMUNITY_PARK.width} height={COMMUNITY_PARK.depth} fill="#7fa660"><title>Community Park</title></rect>
     {HOMES.map(h=><rect key={h.id} x={h.x-2.3} y={h.z-1.8} width="4.6" height="3.6" rx=".5" fill={route?'#d4d3b4':h.id===data.resident.home?'#eac16c':h.roof} stroke="#647451" strokeWidth=".3"/>)}
     {GARDEN_AREAS.map(a=><rect key={a.id} x={a.x-a.width/2} y={a.z-a.depth/2} width={a.width} height={a.depth} rx=".5" fill="#83a765" stroke="#5c7b46" strokeWidth=".4"><title>{a.name}</title></rect>)}
-    {buildings.map(b=>{const Icon=b.id==='townhall'?Landmark:b.id==='clothing'?Shirt:b.id==='general'?Store:b.id==='cafe'?Coffee:b.id==='school'?GraduationCap:b.id==='library'?BookOpen:b.id==='gardenclub'?Sprout:Mailbox;return <g key={b.id} role="button" tabIndex={0} aria-label={`Look at ${b.name}`} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();onLook(b.x,b.z)}}} style={{cursor:'pointer'}}><title>{b.name}</title><rect x={b.x-b.width/2} y={b.z-b.depth/2} width={b.width} height={b.depth} rx=".5" fill={b.color} stroke={b.roof} strokeWidth=".5"/><Icon x={b.x-7*unit} y={b.z-7*unit} width={14*unit} height={14*unit} color="#354b48" strokeWidth={2.5}/></g>})}
+    {buildings.map(b=>{const Icon=b.action==='pets'?PawPrint:b.id==='townhall'?Landmark:b.id==='clothing'?Shirt:b.id==='general'?Store:b.id==='cafe'?Coffee:b.id==='school'?GraduationCap:b.id==='library'?BookOpen:b.id==='gardenclub'?Sprout:Mailbox;return <g key={b.id} role="button" tabIndex={0} aria-label={`Look at ${b.name}`} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();onLook(b.x,b.z)}}} style={{cursor:'pointer'}}><title>{b.name}</title><rect x={b.x-b.width/2} y={b.z-b.depth/2} width={b.width} height={b.depth} rx=".5" fill={b.color} stroke={b.roof} strokeWidth=".5"/><Icon x={b.x-7*unit} y={b.z-7*unit} width={14*unit} height={14*unit} color="#354b48" strokeWidth={2.5}/></g>})}
     {data.planning.territories.includes('island')&&FERRY_STOPS.map(f=><circle key={f.id} cx={f.x} cy={f.z} r={3*unit} fill="#eecc7b" stroke="#48677b" strokeWidth={unit}><title>{f.name}</title></circle>)}
     <circle r="1.6" fill="#79adb6"/>
     {data.peers.filter(p=>p.id!==data.resident.id).map(p=><circle key={p.id} cx={p.x} cy={p.z} r={2.4*unit} fill="#375c60" stroke="#fffbea" strokeWidth={unit}><title>{p.name}</title></circle>)}

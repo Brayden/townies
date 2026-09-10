@@ -7,7 +7,7 @@ export type BuildingChoice=Pick<PlanProposal,'kind'|'institution'|'option'>;
 export function placementShape(s:PlanningState,p:BuildingChoice){
  if(p.kind==='branch')return nodeById(p.option)!;
  if(p.kind==='relocate')return institutionShape(s.institutions.find(i=>i.id===p.institution)!);
- return {name:p.option==='garden'?'Civic garden':p.option==='food'?'Neighborhood food hall':'Community craft studio',width:7,depth:4,height:p.option==='garden'?1:3.4,color:'#e5d2ad',roof:p.option==='food'?'#bd8267':'#719088'};
+ return {name:p.option==='pets'?'Paws & Porches Pet Store':p.option==='garden'?'Civic garden':p.option==='food'?'Neighborhood food hall':'Community craft studio',width:7,depth:4,height:p.option==='garden'?1:3.4,color:'#e5d2ad',roof:p.option==='food'?'#bd8267':p.option==='pets'?'#a57d97':'#719088'};
 }
 export function placementBuilding(s:PlanningState,p:BuildingChoice,v:Placement):WorldBuilding{const n=placementShape(s,p);return {id:p.institution??'preview',...n,...v,...oriented(n.width,n.depth,v.rotation),modelWidth:n.width,modelDepth:n.depth,action:'town'};}
 type Rect={x:number;z:number;width:number;depth:number};

@@ -8,7 +8,7 @@ export function charterScenery(k:Kit,s:PlanningState){const {box,ball,cylinder,r
 
  const buildings=townBuildings(s);
  for(const i of s.institutions){if(i.node==='root'&&i.id!=='harbor')continue;const b=buildings.find(b=>b.id===i.id)!;root.add(buildingModel(k,b,nodeById(i.node)?.style??'harbor'));}
- for(const building of s.buildings){const p=locationOf(building),b=buildings.find(b=>b.id===`site-${building.plot}`)??{id:'garden',...p,name:'Civic garden',width:7,depth:4,height:1,color:'#b1c984',roof:'#719088',action:'town'};root.add(buildingModel(k,b,building.kind==='garden'?'garden':building.kind==='food'?'market':'workshop'));}
+ for(const building of s.buildings){const p=locationOf(building),b=buildings.find(b=>b.id===`site-${building.plot}`)??{id:'garden',...p,name:'Civic garden',width:7,depth:4,height:1,color:'#b1c984',roof:'#719088',action:'town'};root.add(buildingModel(k,b,building.kind==='pets'?'pets':building.kind==='garden'?'garden':building.kind==='food'?'market':'workshop'));}
  if(s.territories.includes('island'))for(const f of FERRY_STOPS){box(3,.2,2,'#bc956c',f.x,.32,f.z,root);for(const x of [-1.4,1.4])box(.13,1.4,.13,'#917958',f.x+x,.9,f.z+.7,root);box(2.2,.8,.16,'#7b9c96',f.x,1.7,f.z+.7,root);const boat=ball(1,'#c7a16b',f.x,0,f.z+2.1,root);boat.scale.set(1.5,.28,.7);box(1.4,.75,.8,'#f1e4bc',f.x,.65,f.z+2.1,root);roof(1.8,1,.45,'#7899a2',f.x,1.03,f.z+2.1,root);}
  return root;
 }
@@ -24,8 +24,9 @@ export function buildingModel(k:Kit,b:ReturnType<typeof townBuildings>[number],s
   if(style==='workshop'){for(const x of [-w*.28,w*.28]){box(.4,1.3,.4,'#927c5c',x,h+1.4,0,g);box(2.5,.15,.15,'#c2a26a',x,h+2,0,g)}}
   for(let x=-w/2+1;x<w/2-.4;x+=2){for(let y=1.7;y<h;y+=2){box(1.05,1.2,.13,'#f6e8c6',x,y,d/2+.08,g);box(.82,.98,.08,'#7baeb5',x,y,d/2+.18,g)}if(['campus','museum','theater'].includes(style))cylinder(.15,h*.68,'#f1e4be',x,h*.34+.3,d/2+.3,g);}
   box(1.4,2,.18,'#55776f',0,1.3,d/2+.22,g);box(2.6,.15,1,'#d8c59d',0,.25,d/2+.6,g);roof(Math.min(w,5),1.5,.55,style==='theater'?'#b17b7d':b.roof,0,2.5,d/2+.6,g);
-  if(['market','festival','mall','theater'].includes(style)){for(let x=-w/2+.3;x<w/2;x+=.65)box(.65,.16,1.3,Math.round(x/.65)%2?'#f8e9c3':b.roof,x,2.7,d/2+.6,g);}
+  if(['pets','market','festival','mall','theater'].includes(style)){for(let x=-w/2+.3;x<w/2;x+=.65)box(.65,.16,1.3,Math.round(x/.65)%2?'#f8e9c3':b.roof,x,2.7,d/2+.6,g);}
   if(style==='festival'||style==='theater')for(const x of [-w*.4,w*.4]){box(.09,2,.09,'#aa8b5a',x,h+2,0,g);box(.75,.7,.05,'#e7bf70',x+.35,h+2.5,0,g);}
+  if(style==='pets'){box(2.5,.85,.15,'#eee1bf',0,3.15,d/2+.18,g);const pad=ball(.22,'#946a89',0,3.04,d/2+.3,g);pad.scale.set(1,.75,.24);for(const [x,y]of [[-.36,3.3],[-.13,3.46],[.13,3.46],[.36,3.3]]){const toe=ball(.12,'#946a89',x,y,d/2+.3,g);toe.scale.z=.35;}for(const x of [-2.3,2.3]){cylinder(.25,.1,'#8ba7a5',x,.36,d/2+.5,g);}}
   for(const x of [-w/2+.6,w/2-.6]){cylinder(.35,.45,'#bb9369',x,.5,d/2+.5,g);for(let j=0;j<3;j++){const flowers=new THREE.Group();flowers.position.y=.55;g.add(flowers);flower(x+(j-1)*.2,d/2+.5,j%2?'#f4d896':'#dba4b5',flowers)}}
  return g;
 }
