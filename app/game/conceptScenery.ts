@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {HOME_LOTS,ROADS,COMMUNITY_PARK} from './townLayout';
 type Parent=THREE.Object3D;
 type Kit={box:(w:number,h:number,d:number,c:string,x:number,y:number,z:number,parent?:Parent)=>THREE.Mesh;ball:(r:number,c:string,x:number,y:number,z:number,parent?:Parent)=>THREE.Mesh;cylinder:(r:number,h:number,c:string,x:number,y:number,z:number,parent?:Parent,rt?:number)=>THREE.Mesh;roof:(w:number,d:number,h:number,c:string,x:number,y:number,z:number,parent?:Parent)=>THREE.Mesh;tree:(x:number,z:number,s?:number)=>void;bench:(x:number,z:number,parent?:Parent)=>void;flower:(x:number,z:number,c:string,parent?:Parent)=>void};
-export function conceptScenery(k:Kit){const {box,ball,cylinder,roof,tree,bench,flower}=k;
+export function conceptScenery(k:Kit,expanded:{north:boolean;east:boolean}={north:false,east:false}){const {box,ball,cylinder,roof,tree,bench,flower}=k;
  // Raised curb lines and repeated paving give the grid a consistent visual scale.
  const paved=ROADS.flatMap(r=>{const left=r.x-r.width/2,right=r.x+r.width/2;if(right<=23.2||left>=32.8)return[r];return[{...r,x:(left+23.2)/2,width:23.2-left},{...r,x:(32.8+right)/2,width:right-32.8}].filter(p=>p.width>0)});
  for(const r of paved){box(r.width+.45,.045,r.depth+.45,'#e8ddbf',r.x,.155,r.z);box(r.width,.045,r.depth,'#c8c4af',r.x,.18,r.z);const along=r.width>r.depth,length=along?r.width:r.depth;for(let n=-length/2+2;n<length/2;n+=2)box(along?.025:r.width,.012,along?r.depth:.025,'#b7b6a5',r.x+(along?n:0),.21,r.z+(along?0:n));}
@@ -58,7 +58,7 @@ export function conceptScenery(k:Kit){const {box,ball,cylinder,roof,tree,bench,f
  box(220,.08,80,'#71bec7',0,.13,97);box(98,.025,5,'#e1d5b2',-26,.15,55.5);box(42,.025,5,'#e1d5b2',54,.15,55.5);
  box(23,.13,2,'#bb9567',-35,.33,55);box(3,.18,8,'#a78259',-35,.4,60);box(9,.18,2,'#a78259',-35,.4,63);
  for(let x=-45;x<=-24;x+=2.5){box(.13,1.05,.13,'#947753',x,.65,56);box(2.3,.08,.1,'#a4885c',x+1.15,.9,56)}
- box(5,2.2,3.3,'#bb9e72',-30,1.3,47);roof(5.5,3.8,1.8,'#6f8b9c',-30,2.42,47);box(1.3,1.8,.1,'#6e6854',-30,1.2,48.7);
+
  for(const [x,z]of [[-39,61],[-30,62]]){const boat=ball(1,'#ae774d',x,.34,z);boat.scale.set(.6,.32,1.55);box(.07,3,.07,'#ac9d73',x,1.9,z);const sail=roof(1.6,.035,2,'#fff1cc',x+.55,1.5,z);sail.rotation.y=.2;}
  for(let i=0;i<38;i++){const x=-69+i*3.8;if(Math.abs(x+35)<9||Math.abs(x-28)<6)continue;const rock=ball(.6+(i%3)*.13,['#9ba397','#b1b5a1','#87978d'][i%3],x,.2,57+Math.sin(i)*.5);rock.scale.y=.7;}
  // River reeds, stones and lilies give the straight channel a living edge.
@@ -66,6 +66,6 @@ export function conceptScenery(k:Kit){const {box,ball,cylinder,roof,tree,bench,f
  for(let i=0;i<25;i++)box(.8+(i%3)*.4,.02,.055,'#d0e5d5',-63+i*5,.2,59+(i%4)*3);
  // Street trees establish block edges without obscuring the civic frontage.
  for(const [x,z]of [[-20,-15],[-20,4],[-19,15],[20,15],[20,-16],[-6,-4],[6,-4],[-6,5],[6,5],[-19,-27],[2,-28]])tree(x,z,.6);
- for(let i=0;i<48;i++){const x=-72+(i%24)*6+Math.sin(i*7)*1.5,z=(i<24?-60:-66)+Math.cos(i*3)*1.2;tree(x,z,1.15+(i%3)*.16)}
- for(let i=0;i<30;i++){const z=-54+(i%15)*7,x=i<15?-66:67;tree(x,z,1.05+(i%4)*.15)}
+ if(!expanded.north)for(let i=0;i<48;i++){const x=-72+(i%24)*6+Math.sin(i*7)*1.5,z=(i<24?-60:-66)+Math.cos(i*3)*1.2;tree(x,z,1.15+(i%3)*.16)}
+ for(let i=0;i<30;i++){if(i>=15&&expanded.east)continue;const z=-54+(i%15)*7,x=i<15?-66:67;tree(x,z,1.05+(i%4)*.15)}
 }

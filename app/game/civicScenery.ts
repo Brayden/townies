@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {CIVIC_PROJECTS} from './civicProjects.ts';
 import {BUILDINGS,STALLS} from './townLayout.ts';
-type Kit={box:(w:number,h:number,d:number,c:string,x:number,y:number,z:number,parent?:THREE.Object3D)=>THREE.Mesh;ball:(r:number,c:string,x:number,y:number,z:number,parent?:THREE.Object3D)=>THREE.Mesh;cylinder:(r:number,h:number,c:string,x:number,y:number,z:number,parent?:THREE.Object3D,rt?:number)=>THREE.Mesh;roof:(w:number,d:number,h:number,c:string,x:number,y:number,z:number,parent?:THREE.Object3D)=>THREE.Mesh;bench:(x:number,z:number,parent?:THREE.Object3D)=>void;flower:(x:number,z:number,c:string,parent?:THREE.Object3D)=>void};
+export type Kit={box:(w:number,h:number,d:number,c:string,x:number,y:number,z:number,parent?:THREE.Object3D)=>THREE.Mesh;ball:(r:number,c:string,x:number,y:number,z:number,parent?:THREE.Object3D)=>THREE.Mesh;cylinder:(r:number,h:number,c:string,x:number,y:number,z:number,parent?:THREE.Object3D,rt?:number)=>THREE.Mesh;roof:(w:number,d:number,h:number,c:string,x:number,y:number,z:number,parent?:THREE.Object3D)=>THREE.Mesh;bench:(x:number,z:number,parent?:THREE.Object3D)=>void;flower:(x:number,z:number,c:string,parent?:THREE.Object3D)=>void};
 // Additions use the same world geometry, palette, scale, and southern frontage as town scenery.
 // All public paths and existing work targets remain accessible beneath/around these additions.
 export function civicScenery(k:Kit){

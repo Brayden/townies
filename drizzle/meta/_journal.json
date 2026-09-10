@@ -43,6 +43,13 @@
       "when": 1789001553800,
       "tag": "0005_futuristic_jack_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789005363699,
+      "tag": "0006_medical_xorn",
+      "breakpoints": true
     }
   ]
 }

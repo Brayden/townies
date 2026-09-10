@@ -40,18 +40,19 @@ export const HARBOR={x:-35,z:51};
 export const SOLID_PROPS=[{x:17,z:-28,width:3,depth:3},{x:53,z:-16,width:3,depth:3},{x:53,z:17.7,width:3,depth:2.4},{x:-30,z:47,width:5,depth:3.3}];
 export const onBridge=(x:number,z:number)=>x>=21&&x<=35&&BRIDGES.some(b=>Math.abs(z-b.z)<=2.4);
 export const groundHeight=(x:number,z:number)=>onBridge(x,z)?Math.max(0,Math.min(1,(x-21)/2,(35-x)/2))*.4:0;
-export function isTownBlocked(x:number,z:number){
- return x< -60||x>60||z< -58||z>55
-  ||(x>23.2&&x<32.8&&!onBridge(x,z))
-  ||SOLID_PROPS.some(b=>Math.abs(x-b.x)<b.width/2+.15&&Math.abs(z-b.z)<b.depth/2+.15)
+export type TownLayout={bounds:{x:number;z:number;width:number;depth:number}[];buildings:{x:number;z:number;width:number;depth:number}[];solidProps:{x:number;z:number;width:number;depth:number}[];stalls:{x:number;z:number}[]};
+export function isTownBlocked(x:number,z:number,layout?:TownLayout){
+ return (layout?!layout.bounds.some(r=>Math.abs(x-r.x)<=r.width/2&&Math.abs(z-r.z)<=r.depth/2):x< -60||x>60||z< -58||z>55)
+  ||(x>23.2&&x<32.8&&z>=-58&&z<=55&&!onBridge(x,z))
+  ||(layout?.solidProps??SOLID_PROPS).some(b=>Math.abs(x-b.x)<b.width/2+.15&&Math.abs(z-b.z)<b.depth/2+.15)
   ||HOME_LOTS.some(h=>Math.abs(x-h.x)<2.5&&Math.abs(z-h.z)<2.2)
-  ||BUILDINGS.some(b=>Math.abs(x-b.x)<b.width/2+.23&&Math.abs(z-b.z)<b.depth/2+.23)
+  ||(layout?.buildings??BUILDINGS).some(b=>Math.abs(x-b.x)<b.width/2+.23&&Math.abs(z-b.z)<b.depth/2+.23)
   ||(Math.abs(x)<2.05&&Math.abs(z)<2.05)
-  ||STALLS.some(b=>Math.abs(x-b.x)<1.5&&Math.abs(z-b.z)<1.05)
+  ||(layout?.stalls??STALLS).some(b=>Math.abs(x-b.x)<1.5&&Math.abs(z-b.z)<1.05)
   ||Math.hypot(x-WINDMILL.x,z-WINDMILL.z)<1.65;
 }
-export function safeTownPosition(x:number,z:number){
- if(!isTownBlocked(x,z))return{x,z};
- for(let radius=1;radius<10;radius++)for(let dx=-radius;dx<=radius;dx++)for(let dz=-radius;dz<=radius;dz++)if((Math.abs(dx)===radius||Math.abs(dz)===radius)&&!isTownBlocked(x+dx,z+dz))return{x:x+dx,z:z+dz};
+export function safeTownPosition(x:number,z:number,layout?:TownLayout){
+ if(!isTownBlocked(x,z,layout))return{x,z};
+ for(let radius=1;radius<10;radius++)for(let dx=-radius;dx<=radius;dx++)for(let dz=-radius;dz<=radius;dz++)if((Math.abs(dx)===radius||Math.abs(dz)===radius)&&!isTownBlocked(x+dx,z+dz,layout))return{x:x+dx,z:z+dz};
  return{x:0,z:6};
 }
