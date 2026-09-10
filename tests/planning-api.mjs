@@ -28,12 +28,12 @@ a=await ok('a');assert.equal(a.town.treasury,29900);assert.deepEqual(a.planning.
 assert.deepEqual((await ok('b')).planning.territories,['north']);assert.deepEqual((await ok('c')).planning.territories,[]);
 local(`UPDATE residents SET x=-44,z=-57,seen=${Date.now()-2500} WHERE id='${a.resident.id}'`);
 a=await ok('a','heartbeat',{x:-44,z:-61});assert.equal(a.corrected,false);assert.equal(a.resident.z,-61,'Movement reaches newly acquired land');
-p=await propose({kind:'branch',institution:'library',option:'academy'});await complete(await approve(p));
+p=await propose({kind:'branch',institution:'library',option:'academy'});const premature=await call('a','plan-place',{plan:p.id,x:-16,z:9,rotation:0});assert.equal(premature.status,409,JSON.stringify(premature));await complete(await approve(p));assert.equal(a.planning.proposals.find(x=>x.id===p.id).status,'ready');assert.equal(a.planning.institutions[0].node,'root');assert.equal((await call('b','plan-place',{plan:p.id,x:-16,z:9,rotation:0,mayorId:a.resident.id})).status,403);assert.equal((await call('a','plan-place',{plan:p.id,x:0,z:0,rotation:0})).status,400);a=await ok('a','plan-place',{plan:p.id,x:-16,z:9,rotation:0});
 p=await propose({kind:'relocate',institution:'library',option:'north-0-0'});p=await approve(p);
 a=await ok('a','plan-fund',{plan:p.id,funded:0,amount:100});assert.equal(a.planning.institutions.find(i=>i.id==='library').plot,'library-site');
-p=a.planning.proposals.find(x=>x.id===p.id);await complete(p);const shared=(await ok('b')).planning.institutions.find(i=>i.id==='library');assert.equal(shared.node,'academy');assert.equal(shared.plot,'north-0-0');
+p=a.planning.proposals.find(x=>x.id===p.id);await complete(p);const before=a.town.treasury;const places=await Promise.all([call('a','plan-place',{plan:p.id,x:-43,z:-70,rotation:90}),call('a','plan-place',{plan:p.id,x:-43,z:-70,rotation:90})]);assert.deepEqual(places.map(r=>r.status).sort(),[200,409]);assert.equal((await ok('a')).town.treasury,before);const shared=(await ok('b')).planning.institutions.find(i=>i.id==='library');assert.equal(shared.node,'academy');assert.equal(shared.x,-43);assert.equal(shared.z,-70);assert.equal(shared.rotation,90);
 local(`UPDATE residents SET x=-16,z=9,seen=${Date.now()-2000} WHERE id='${a.resident.id}'`);a=await ok('a');assert.equal(a.resident.x,-16);assert.equal(a.resident.z,9,'Old collision footprint is removed');
-local(`UPDATE residents SET x=-44,z=-70 WHERE id='${a.resident.id}'`);a=await ok('a');assert.ok(a.resident.x!==-44||a.resident.z!==-70,'Resident inside new building is safely moved out');
+local(`UPDATE residents SET x=-43,z=-70 WHERE id='${a.resident.id}'`);a=await ok('a');assert.ok(a.resident.x!==-43||a.resident.z!==-70,'Resident inside new building is safely moved out');
 p=await propose({kind:'expand',option:'island'});await complete(await approve(p));
 assert.equal((await call('a','ferry',{x:70,z:94})).status,400,'Cannot board remotely');
 const main=FERRY_STOPS[0],island=FERRY_STOPS[1];local(`UPDATE residents SET x=${main.x},z=${main.z} WHERE id='${a.resident.id}'`);

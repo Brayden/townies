@@ -12,7 +12,7 @@ export const BUILDINGS=[
  {id:'library',name:'Town Library',x:-16,z:9,width:6,depth:5,height:3.1,color:'#e5d2a7',roof:'#6f879d',action:'library'},
  {id:'gardenclub',name:'Garden Club',x:17,z:9,width:6,depth:5,height:3.1,color:'#e5c7ab',roof:'#a37373',action:'work'},
 ];
-export const entrance=(b:typeof BUILDINGS[number])=>({x:b.x,z:b.z+b.depth/2+1.2});
+export const entrance=(b:{x:number;z:number;depth:number;modelDepth?:number;rotation?:number})=>{const a=(b.rotation??0)*Math.PI/180,d=(b.modelDepth??b.depth)/2+1.2;return {x:b.x+Math.sin(a)*d,z:b.z+Math.cos(a)*d}};
 const lots:{x:number;z:number;district:string}[]=[];
 for(const z of [-49,-39,-29])for(const x of [-39,-29])lots.push({x,z,district:'North Meadows'});
 for(const z of [-49,-39])for(const x of [9,17])lots.push({x,z,district:'School Lane'});
@@ -34,13 +34,13 @@ export const ROADS=[
  {x:-21,z:36,width:2.4,depth:28},
  ...[-5,5,15].map(z=>({x:48,z,width:26,depth:2.4})),
 ];
-export const STALLS=[{x:-6,z:13},{x:0,z:13},{x:6,z:13},{x:-6,z:17},{x:0,z:17},{x:6,z:17}];
+export const STALLS:{x:number;z:number;rotation?:number}[]=[{x:-6,z:13},{x:0,z:13},{x:6,z:13},{x:-6,z:17},{x:0,z:17},{x:6,z:17}];
 export const WINDMILL={x:-53,z:-47};
 export const HARBOR={x:-35,z:51};
 export const SOLID_PROPS=[{x:17,z:-28,width:3,depth:3},{x:53,z:-16,width:3,depth:3},{x:53,z:17.7,width:3,depth:2.4},{x:-30,z:47,width:5,depth:3.3}];
 export const onBridge=(x:number,z:number)=>x>=21&&x<=35&&BRIDGES.some(b=>Math.abs(z-b.z)<=2.4);
 export const groundHeight=(x:number,z:number)=>onBridge(x,z)?Math.max(0,Math.min(1,(x-21)/2,(35-x)/2))*.4:0;
-export type TownLayout={bounds:{x:number;z:number;width:number;depth:number}[];buildings:{x:number;z:number;width:number;depth:number}[];solidProps:{x:number;z:number;width:number;depth:number}[];stalls:{x:number;z:number}[]};
+export type TownLayout={bounds:{x:number;z:number;width:number;depth:number}[];buildings:{x:number;z:number;width:number;depth:number}[];solidProps:{x:number;z:number;width:number;depth:number}[];stalls:{x:number;z:number;rotation?:number}[]};
 export function isTownBlocked(x:number,z:number,layout?:TownLayout){
  return (layout?!layout.bounds.some(r=>Math.abs(x-r.x)<=r.width/2&&Math.abs(z-r.z)<=r.depth/2):x< -60||x>60||z< -58||z>55)
   ||(x>23.2&&x<32.8&&z>=-58&&z<=55&&!onBridge(x,z))
@@ -48,7 +48,7 @@ export function isTownBlocked(x:number,z:number,layout?:TownLayout){
   ||HOME_LOTS.some(h=>Math.abs(x-h.x)<2.5&&Math.abs(z-h.z)<2.2)
   ||(layout?.buildings??BUILDINGS).some(b=>Math.abs(x-b.x)<b.width/2+.23&&Math.abs(z-b.z)<b.depth/2+.23)
   ||(Math.abs(x)<2.05&&Math.abs(z)<2.05)
-  ||(layout?.stalls??STALLS).some(b=>Math.abs(x-b.x)<1.5&&Math.abs(z-b.z)<1.05)
+  ||(layout?.stalls??STALLS).some(b=>Math.abs(x-b.x)<((b.rotation??0)%180?1.05:1.5)&&Math.abs(z-b.z)<((b.rotation??0)%180?1.5:1.05))
   ||Math.hypot(x-WINDMILL.x,z-WINDMILL.z)<1.65;
 }
 export function safeTownPosition(x:number,z:number,layout?:TownLayout){

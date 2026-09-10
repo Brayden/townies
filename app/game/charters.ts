@@ -2,9 +2,9 @@ import {BUILDINGS,STALLS,SOLID_PROPS,type TownLayout} from './townLayout.ts';
 export type InstitutionId='library'|'towncenter'|'harbor';
 export const INSTITUTIONS=[{id:'library',name:'Library',plot:'library-site'},{id:'towncenter',name:'Town center',plot:'market-site'},{id:'harbor',name:'Harbor',plot:'harbor-site'}] as const;
 export const TERRITORIES=[
- {id:'north',name:'Northern Meadows',cost:2400,x:-19,z:-77,width:82,depth:38,description:'Six large civic parcels, meadow lanes, and space for a new campus north of town.'},
- {id:'east',name:'Eastern Fields',cost:3200,x:82,z:0,width:44,depth:100,description:'Six generous parcels along a new grid of streets east of the neighborhoods.'},
- {id:'island',name:'Sunrise Island',cost:4800,x:90,z:81,width:44,depth:34,description:'A ferry route and four island parcels. Travel from the harbor to a new waterfront district.'},
+ {id:'north',name:'Northern Meadows',cost:2400,x:-19,z:-77,width:82,depth:38,description:'Meadow lanes and open land for a new campus north of town. Place buildings freely between the streets.'},
+ {id:'east',name:'Eastern Fields',cost:3200,x:82,z:0,width:44,depth:100,description:'A new grid of streets east of the neighborhoods, with room to design your own civic district.'},
+ {id:'island',name:'Sunrise Island',cost:4800,x:90,z:81,width:44,depth:34,description:'A ferry route and open island land. Design a new waterfront district across the water.'},
 ] as const;
 export const PLOTS=[
  {id:'library-site',name:'Old Library Square',territory:'core',x:-16,z:9,width:10,depth:8},
@@ -46,21 +46,26 @@ branch('harbor','research-port','expedition-port','Marine Expedition Base',4300,
 branch('harbor','explorer-lodge','expedition-port','Explorers’ Lodge',4000,14,10,6,'campus','#d9c5a2','#827c65','A timber expedition landmark with entrance columns and a tall lookout.');
 export const CHARTER_NODES=nodes;
 export const REDEVELOPMENTS=[{id:'garden',name:'Civic garden',cost:600,description:'A public garden and seating on a vacated civic site.'},{id:'food',name:'Neighborhood food hall',cost:1200,description:'A small food hall with striped awnings on a vacant civic parcel.'},{id:'craft',name:'Community craft studio',cost:1400,description:'A timber workshop and planted entrance on a vacant civic parcel.'}] as const;
-export type Institution={id:InstitutionId;node:string;plot:string};
-export type PlanProposal={id:string;kind:'branch'|'relocate'|'expand'|'build';institution:string|null;option:string;fromNode:string|null;fromPlot:string|null;cost:number;funded:number;status:'voting'|'approved'|'rejected'|'completed';created:number;closes:number;electorate:number;quorum:number;yes:number;no:number;myVote:number|null;eligible:boolean;name:string};
-export type PlanningState={territories:string[];institutions:Institution[];buildings:{plot:string;kind:string}[];proposals:PlanProposal[]};
+export type Placement={x:number;z:number;rotation:number};
+export type Institution={id:InstitutionId;node:string;plot:string;x?:number|null;z?:number|null;rotation?:number};
+export type ParcelBuilding={plot:string;kind:string;x?:number|null;z?:number|null;rotation?:number};
+export type WorldBuilding=typeof BUILDINGS[number]&{rotation?:number;modelWidth?:number;modelDepth?:number};
+export type PlanProposal={id:string;kind:'branch'|'relocate'|'expand'|'build';institution:string|null;option:string;fromNode:string|null;fromPlot:string|null;cost:number;funded:number;status:'voting'|'approved'|'ready'|'rejected'|'completed';created:number;closes:number;electorate:number;quorum:number;yes:number;no:number;myVote:number|null;eligible:boolean;name:string};
+export type PlanningState={territories:string[];institutions:Institution[];buildings:ParcelBuilding[];proposals:PlanProposal[]};
 export const EMPTY_PLANNING:PlanningState={territories:[],institutions:INSTITUTIONS.map(i=>({id:i.id,node:'root',plot:i.plot})),buildings:[],proposals:[]};
 export const nodeById=(id:string)=>CHARTER_NODES.find(n=>n.id===id);
 export const plotById=(id:string)=>PLOTS.find(p=>p.id===id);
 export function plotOwned(plot:typeof PLOTS[number],s:PlanningState){return plot.territory==='core'||s.territories.includes(plot.territory);}
-export function plotOccupied(id:string,s:PlanningState){return s.institutions.some(i=>i.plot===id)||s.buildings.some(b=>b.plot===id);}
+export function locationOf(i:{plot:string;x?:number|null;z?:number|null;rotation?:number}){const p=plotById(i.plot);return {x:i.x??p?.x??0,z:i.z??p?.z??0,rotation:i.rotation??0,name:i.x!=null?'Custom town site':p?.name??'Town site'};}
+export function oriented(width:number,depth:number,rotation=0){return rotation%180?{width:depth,depth:width}:{width,depth};}
+export function plotOccupied(id:string,s:PlanningState){const p=plotById(id);if(!p)return false;return [...s.institutions.map(i=>({...locationOf(i),...oriented(institutionShape(i).width,institutionShape(i).depth,i.rotation)})),...s.buildings.map(b=>({...locationOf(b),...oriented(7,4,b.rotation)}))].some(b=>Math.abs(b.x-p.x)<(b.width+p.width)/2&&Math.abs(b.z-p.z)<(b.depth+p.depth)/2);}
 export function institutionShape(i:Institution){const node=nodeById(i.node),root=BUILDINGS.find(b=>b.id==='library')!;return node??(i.id==='library'?{...root,name:'Town Library'}:i.id==='towncenter'?{width:16,depth:6,height:2.4,name:'Market Square',color:'#dfcea6',roof:'#b98b65'}:{width:5,depth:3.3,height:2.2,name:'Harbor House',color:'#bb9e72',roof:'#6f8b9c'});}
 export function fitsPlot(shape:{width:number;depth:number},plot:typeof PLOTS[number]){return shape.width<=plot.width-1&&shape.depth<=plot.depth-1;}
-export function townBuildings(s:PlanningState){const fixed=BUILDINGS.filter(b=>b.id!=='library');return [...fixed,...s.institutions.filter(i=>i.id!=='towncenter'||i.node!=='root').map(i=>{const p=plotById(i.plot)!,n=institutionShape(i);return {id:i.id,x:p.x,z:p.z,width:n.width,depth:n.depth,height:n.height,color:n.color,roof:n.roof,name:n.name,action:i.id==='library'?'library':'town'};}),...s.buildings.filter(b=>b.kind!=='garden').map(b=>{const p=plotById(b.plot)!;return {id:`site-${b.plot}`,name:REDEVELOPMENTS.find(r=>r.id===b.kind)!.name,x:p.x,z:p.z,width:Math.min(7,p.width-2),depth:Math.min(4,p.depth-2),height:3.4,color:'#e5d2ad',roof:b.kind==='food'?'#bd8267':'#719088',action:'town'};})];}
+export function townBuildings(s:PlanningState):WorldBuilding[]{const fixed=BUILDINGS.filter(b=>b.id!=='library');return [...fixed,...s.institutions.filter(i=>i.id!=='towncenter'||i.node!=='root').map(i=>{const p=locationOf(i),n=institutionShape(i);return {id:i.id,...p,...oriented(n.width,n.depth,p.rotation),modelWidth:n.width,modelDepth:n.depth,height:n.height,color:n.color,roof:n.roof,name:n.name,action:i.id==='library'?'library':'town'};}),...s.buildings.filter(b=>b.kind!=='garden').map(b=>{const p=locationOf(b),parcel=plotById(b.plot),width=Math.min(7,(parcel?.width??9)-2),depth=Math.min(4,(parcel?.depth??6)-2);return {id:`site-${b.plot}`,...p,name:REDEVELOPMENTS.find(r=>r.id===b.kind)!.name,...oriented(width,depth,p.rotation),modelWidth:width,modelDepth:depth,height:3.4,color:'#e5d2ad',roof:b.kind==='food'?'#bd8267':'#719088',action:'town'};})];}
 export function townLayout(s:PlanningState):TownLayout{return {bounds:[{x:0,z:-1.5,width:120,depth:113},...TERRITORIES.filter(t=>s.territories.includes(t.id))],buildings:townBuildings(s),solidProps:SOLID_PROPS.filter(p=>p.x!==-30||p.z!==47),stalls:s.institutions.find(i=>i.id==='towncenter')?.node==='root'?marketStalls(s):[]};}
-export function marketStalls(s:PlanningState){const plot=plotById(s.institutions.find(i=>i.id==='towncenter')!.plot)!;return STALLS.map(stall=>({...stall,x:stall.x+plot.x,z:stall.z+plot.z-14}));}
+export function marketStalls(s:PlanningState){const p=locationOf(s.institutions.find(i=>i.id==='towncenter')!),a=p.rotation*Math.PI/180;return STALLS.map(stall=>({...stall,x:p.x+stall.x*Math.cos(a)+(stall.z-14)*Math.sin(a),z:p.z-stall.x*Math.sin(a)+(stall.z-14)*Math.cos(a),rotation:p.rotation}));}
 export const FERRY_STOPS=[{id:'ferry-main',x:-35,z:54,name:'Ferry to Sunrise Island'},{id:'ferry-island',x:70,z:94,name:'Ferry to town'}];
-export function proposalTitle(p:Pick<PlanProposal,'kind'|'option'|'institution'>){return p.kind==='expand'?`Open ${TERRITORIES.find(t=>t.id===p.option)?.name}`:p.kind==='branch'?nodeById(p.option)?.name??p.option:p.kind==='relocate'?`Move ${INSTITUTIONS.find(i=>i.id===p.institution)?.name} to ${plotById(p.option)?.name}`:`Build ${REDEVELOPMENTS.find(r=>r.id===p.option)?.name}`;}
+export function proposalTitle(p:Pick<PlanProposal,'kind'|'option'|'institution'>){return p.kind==='expand'?`Open ${TERRITORIES.find(t=>t.id===p.option)?.name}`:p.kind==='branch'?nodeById(p.option)?.name??p.option:p.kind==='relocate'?`Relocate ${INSTITUTIONS.find(i=>i.id===p.institution)?.name}`:`Build ${REDEVELOPMENTS.find(r=>r.id===p.option)?.name}`;}
 export function proposalSite(p:Pick<PlanProposal,'kind'|'option'|'institution'|'fromPlot'>){return p.kind==='expand'?TERRITORIES.find(t=>t.id===p.option):plotById((p.kind==='relocate'?p.option:p.fromPlot)??'');}
 export function expansionRoads(s:PlanningState){return [
  ...(s.territories.includes('north')?[...[-58,-30,-3,21].map(x=>({x,z:-77,width:2,depth:38})),...[-61,-78,-95].map(z=>({x:-19,z,width:82,depth:2}))]:[]),

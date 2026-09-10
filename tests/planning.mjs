@@ -1,3 +1,5 @@
+import {placementError,initialPlacement} from '../app/game/placement.ts';
+import {locationOf,plotOccupied} from '../app/game/charters.ts';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync} from 'node:fs';
@@ -17,7 +19,6 @@ const act=(r,b,t=now)=>planningAction(d,r,b,t),state=()=>readPlanning(d,'town',m
 assert.equal((await act(neighbor,{action:'plan-propose',kind:'expand',option:'north',mayorId:mayor.id})).status,403);
 assert.equal((await act(outsider,{action:'plan-propose',kind:'expand',option:'north',townId:'town'})).status,403);
 assert.equal((await act(people[5],{action:'plan-vote',plan:'x',vote:true})).status,400);
-assert.equal((await act(mayor,{action:'plan-propose',kind:'relocate',institution:'library',option:'north-0-0'})).status,400,'Unowned land cannot receive buildings');
 async function propose(spec){assert.equal(await act(mayor,{action:'plan-propose',...spec}),null);return (await state()).proposals.find(p=>p.status==='voting')}
 async function close(p,yes=2,no=0){for(let i=0;i<yes+no;i++)assert.equal(await act(people[i],{action:'plan-vote',plan:p.id,vote:i<yes}),null);sqlite.prepare('UPDATE town_plans SET closes=? WHERE id=?').run(now,p.id);return (await state()).proposals.find(x=>x.id===p.id)}
 async function fund(p,amount=p.cost-p.funded){return act(mayor,{action:'plan-fund',plan:p.id,funded:p.funded,amount})}
@@ -44,17 +45,24 @@ sqlite.exec("CREATE TRIGGER fail_territory BEFORE INSERT ON town_territories BEG
 await assert.rejects(fund(p));assert.equal(coins(),49900);assert.equal((await state()).proposals.find(x=>x.id===p.id).funded,100);sqlite.exec('DROP TRIGGER fail_territory');
 assert.equal(await fund(p),null);assert.deepEqual((await state()).territories,['north']);assert.equal(coins(),47600);
 assert.ok(validatePlan(await state(),{kind:'expand',option:'north'}).error);
-p=await propose({kind:'branch',institution:'library',option:'academy'});p=await close(p);assert.equal(await fund(p),null);
-let s=await state();assert.equal(s.institutions[0].node,'academy');
-for(const option of ['root','culture','mall','conservatory'])assert.ok(validatePlan(s,{kind:'branch',institution:'library',option}).error,option+' cannot bypass branch or footprint constraints');
-assert.ok(validatePlan(s,{kind:'relocate',institution:'library',option:'market-site'}).error,'Occupied parcel rejected');
-p=await propose({kind:'relocate',institution:'library',option:'north-0-0'});p=await close(p);assert.equal(await fund(p,100),null);
-s=await state();assert.equal(s.institutions[0].plot,'library-site','Old facility stays until fully funded');
-p=s.proposals.find(x=>x.id===p.id);assert.equal(await fund(p),null);s=await state();assert.equal(s.institutions[0].plot,'north-0-0');assert.equal(s.institutions[0].node,'academy','Institution retains charter after moving');
-p=await propose({kind:'branch',institution:'library',option:'conservatory'});p=await close(p);assert.equal(await fund(p),null);
-s=await state();assert.equal(s.institutions[0].node,'conservatory');assert.ok(validatePlan(s,{kind:'branch',institution:'library',option:'institute'}).error,'Sibling leaf permanently closed');
-p=await propose({kind:'build',plot:'library-site',option:'garden'});p=await close(p);assert.equal(await fund(p),null);
-s=await state();assert.deepEqual(s.buildings.map(b=>({...b})),[{plot:'library-site',kind:'garden'}]);assert.ok(validatePlan(s,{kind:'relocate',institution:'harbor',option:'library-site'}).error,'Redevelopment occupies old parcel');
+const place=(p,v,r=mayor)=>act(r,{action:'plan-place',plan:p.id,...v});
+p=await propose({kind:'branch',institution:'library',option:'academy'});
+assert.equal((await place(p,{x:-16,z:9,rotation:0})).status,409,'Cannot place during voting');
+p=await close(p);assert.equal((await place(p,{x:-16,z:9,rotation:0})).status,409,'Cannot place before funding');assert.equal(await fund(p),null);
+let s=await state();assert.equal(s.institutions[0].node,'root','Fully funded building still waits for placement');assert.equal(s.proposals.find(x=>x.id===p.id).status,'ready');
+assert.equal((await act(mayor,{action:'plan-propose',kind:'expand',option:'east'})).status,409,'Ready building holds the active project slot');
+assert.equal((await place(p,{x:-16,z:9,rotation:0},neighbor)).status,403);
+for(const v of [{x:999,z:999,rotation:0},{x:0,z:0,rotation:0},{x:-16,z:9,rotation:45},{x:-16.5,z:9,rotation:0},{x:73,z:-37,rotation:0}])assert.equal((await place(p,v)).status,400,'Invalid placement rejected');
+sqlite.exec("CREATE TRIGGER fail_placement BEFORE INSERT ON charter_institutions BEGIN SELECT RAISE(ABORT,'test placement rollback'); END");await assert.rejects(place(p,{x:-16,z:9,rotation:0}));assert.equal((await state()).proposals.find(x=>x.id===p.id).status,'ready');sqlite.exec('DROP TRIGGER fail_placement');
+const beforePlace=coins(),placements=await Promise.all([place(p,{x:-16,z:9,rotation:0}),place(p,{x:-16,z:9,rotation:0})]);assert.equal(placements.filter(r=>r===null).length,1);assert.equal(coins(),beforePlace,'Placement never spends twice');
+s=await state();assert.equal(s.institutions[0].node,'academy');for(const option of ['root','culture','mall'])assert.ok(validatePlan(s,{kind:'branch',institution:'library',option}).error);
+p=await propose({kind:'relocate',institution:'library',option:'free'});p=await close(p);assert.equal(await fund(p,100),null);assert.equal(locationOf((await state()).institutions[0]).x,-16);
+p=(await state()).proposals.find(x=>x.id===p.id);assert.equal(await fund(p),null);assert.equal(locationOf((await state()).institutions[0]).x,-16,'Old facility stays until mayor places it');
+assert.equal(await place(p,{x:-43,z:-70,rotation:90}),null);s=await state();assert.equal(s.institutions[0].x,-43);assert.equal(s.institutions[0].rotation,90);assert.equal(s.institutions[0].node,'academy');assert.equal(plotOccupied('library-site',s),false,'Old site really becomes free');
+p=await propose({kind:'branch',institution:'library',option:'conservatory'});p=await close(p);assert.equal(await fund(p),null);assert.equal(await place(p,{x:-43,z:-70,rotation:0}),null);
+s=await state();assert.equal(s.institutions[0].node,'conservatory');assert.ok(validatePlan(s,{kind:'branch',institution:'library',option:'institute'}).error,'Other final outcome remains permanently closed');
+p=await propose({kind:'build',option:'garden'});p=await close(p);assert.equal(await fund(p),null);assert.equal(await place(p,{x:-16,z:9,rotation:0}),null);
+s=await state();assert.equal(s.buildings[0].kind,'garden');assert.equal(s.buildings[0].x,-16);assert.equal(plotOccupied('library-site',s),true);assert.ok(placementError(s,{kind:'relocate',institution:'harbor',option:'free'},{x:-16,z:9,rotation:0}));
 assert.equal((await readPlanning(d,'other',outsider.id,now)).proposals.length,0);
 // A 5-person roll requires 3 ballots. Exactly 3 yes out of 5 passes.
 sqlite.prepare('UPDATE residents SET seen=? WHERE id=?').run(now,people[4].id);
