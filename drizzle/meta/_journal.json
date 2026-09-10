@@ -22,6 +22,13 @@
       "when": 1788982332501,
       "tag": "0002_lucky_ironclad",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788999995109,
+      "tag": "0003_volatile_shen",
+      "breakpoints": true
     }
   ]
 }

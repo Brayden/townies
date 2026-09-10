@@ -28,7 +28,7 @@ Thread & Thistle sells five additional shirt colors, alongside five free starter
 
 ## Deliberate limits
 
-This is a first playable version, not the full long-term design. The other fifteen starter jobs, distinct advanced career gameplay, elections, expanded town stages, home interiors, chat, moderation tooling, and key rotation remain future milestones. Presence uses HTTP polling, not a WebSocket simulation. Fifty-account API concurrency has been exercised; sustained fifty-device rendering and mobile GPU performance have not yet been measured.
+This is a first playable version, not the full long-term design. The other fifteen starter jobs, distinct advanced career gameplay, expanded town stages, home interiors, chat, moderation tooling, and key rotation remain future milestones. Presence uses HTTP polling, not a WebSocket simulation. Fifty-account API concurrency has been exercised; sustained fifty-device rendering and mobile GPU performance have not yet been measured.
 
 The published Site is owner-private initially. Its access policy must include friends before invitation keys can let them join a town. Town keys do not bypass Site access or sign-in. Signed-in identity comes only from the trusted Sites dispatcher. The local Vite preview supplies its own single local test identity through the provided sign-in path.
 
@@ -59,3 +59,12 @@ Run `node tests/town-grass.mjs` to verify grass coverage and indexed cutting que
 Run `node tests/camera.mjs` for camera-relative controls, rotation/tilt bounds, click-versus-drag separation, two-finger gestures, cancellation, and listener cleanup. The game API tests also cover public-town invitation generation and concurrent requests.
 
 Run `node tests/town-layout.mjs` for bridge paths, ramps, all home delivery/garden targets, public entrances, and safe positions. Run `TOWNIES_TEST_URL=http://localhost:3002 node tests/town-layout-api.mjs` for actual server crossings on foot/bike/mower, water rejection, atomic outfit purchases, visible peer colors, item ownership, and relocation. Its small fixtures affect only a newly created local test resident.
+
+
+## Mayoral elections and HUD
+
+The transparent town header shows the season, the sitting mayor when there is one, and a countdown / nomination link before voting. During voting it opens the ballot and indicates whether this resident has saved a vote. The coin counter shares a fixed control height with Settings (44px desktop, 38px mobile). Header spacing, modal typography, shared button states and compact-screen control placement use one consistent HUD layout.
+
+Elections use UTC, with voting from the 21st through the 30th inclusive, ending on February's last day. Residents who have selected a home and job may nominate themselves, including during voting, and have one changeable vote per monthly election. Each town has its own candidates and ballots. The highest vote total wins after polls close; ties go to the earliest nomination, then resident ID for identical timestamps. If an election receives no votes, the previous mayor remains. The mayor is a saved election result; spending powers and campaigns are future work.
+
+New migration `0003_volatile_shen.sql` adds candidates and votes with composite uniqueness and a candidate foreign key. Server time determines eligibility windows; client-supplied dates cannot change them. `node tests/elections.mjs` tests the real SQL on a migrated in-memory SQLite database with explicit calendar boundaries, ties, eligibility, deduplication and isolation. `node tests/elections-api.mjs` checks the built local Worker's authenticated nomination and ballot routes against disposable test towns. UI changes were build/type-checked; this pass did not include a device rendering benchmark.
