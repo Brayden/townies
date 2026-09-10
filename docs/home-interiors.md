@@ -1,0 +1,17 @@
+# Home interiors and neighborhood identity
+
+Click your own front door to walk home and enter, press E beside it, or use Home → Go inside & decorate. Entry ends any active work shift and parks your vehicle. Outside returns to the same home's doorstep. Other residents' homes show their owner's name; they cannot be entered or edited in this installment.
+
+The house opens as a Three.js dollhouse cutaway with a walkable room. Its default wall color, trim, curtains, and room title match the selected exterior design. Floor space grows from 8 × 7 at level 1 to 16 × 11 at level 5. Click the floor, use movement keys, or use the mobile direction controls to walk around.
+
+Choose Make it yours to decorate. Five starter pieces are already owned and placed. The collection has 22 pieces, including beds, sofas, chairs, tables, a desk, shelves, plants, lamps, and rugs. Choose a piece to preview it, tap the half-step floor grid or use the nudge controls, rotate it, and confirm placement. Paid pieces show the exact purchase cost before confirmation. Rearranging, storing, and placing owned pieces again are free. Each design can be owned once in this installment.
+
+Finishes offers seven wall choices (including matching the exterior) and five floors. These changes are free and save immediately. Furniture cannot overlap another solid piece or block the entry space. Rugs can sit under furniture. Invalid placements are explained and cannot be saved.
+
+Room contents belong to the resident, so they travel with the resident to another address or town. When a smaller home cannot fit an existing piece, it remains owned and appears in Stored. No purchase is deleted. Larger homes can fit more furniture again.
+
+Desktop hover gives each house a soft outline and a compact owner/address label. On touch screens, tapping the house shows that same label briefly. Vacancies say Available home. Labels use the saved property list, so owners do not need to be online. Names are inserted as text, never HTML. Clicking the owner's front-door target still enters the house directly.
+
+Interior data, ownership, and purchase costs are server-owned. Entry validates the resident's actual address and proximity. Room updates validate membership, interior revision, current house dimensions, layout, and available coins before one atomic save. Duplicate purchases cannot debit twice. The player's outdoor position stays at their doorstep while indoors, and they are removed from outdoor peer rendering until they leave. Other residents do not receive their furniture inventory in shared property state.
+
+Verification: `tests/interiors.mjs` checks all 50 doors and house designs, furniture footprints, entry authorization, purchases and retries, storage, finishes, moves, and downsizing. `tests/interiors-api.mjs` verifies the same room lifecycle and indoor/outdoor presence through the real local Worker with two test residents. Browser/device playtesting is separate; it was not requested for this implementation.
