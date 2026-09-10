@@ -1,3 +1,4 @@
+import {PICNIC,type SharedLifeState} from './sharedLife.ts';
 import {EXTRA_SHOP} from './lifestyle.ts';
 import type {PlanningState} from './charters';
 import type {CivicState} from './civicProjects';
@@ -17,9 +18,9 @@ export const TASKS=[{id:'paper-1',job:'paper',x:-9,z:-4,title:'Good news on Clov
 export const SCHOOL=entrance(BUILDINGS.find(b=>b.id==='school')!);
 export const PARK={x:COMMUNITY_PARK.x+6,z:COMMUNITY_PARK.z+4};
 export const SHOP=[{id:'flowers',name:'Porch flowers',price:80,description:'A bright little welcome at your front door.'},{id:'bench',name:'Garden bench',price:180,description:'Your very own spot to watch the world go by.'},{id:'bike',name:'Town bicycle',price:350,description:'Cruise around town a little faster.'},{id:'home',name:'Cottage extension',price:1200,description:'A bigger porch and a very proud front garden.'},...EXTRA_SHOP];
-export type Resident={catPet?:string|null;dogPet?:string|null;townJoinedAt?:number;house?:string;upkeepDue?:number;upkeepNote?:string;riding?:boolean;outfit?:string;hat?:string;accessory?:string;id:string;name:string;color:string;home:number|null;job:string|null;coins:number;xp:number;education:number;lastStudy:string|null;x:number;z:number;items:string[];mowing:boolean;shift:string|null;papers:number;parcels:number;water:number;bag:number;wateringTarget:string|null;wateringStarted:number};
-export type Peer={house?:string;upkeepDue?:number;upkeepNote?:string;riding?:boolean;outfit?:string;hat?:string;accessory?:string;id:string;name:string;color:string;x:number;z:number;mowing:boolean;shift:string|null;papers:number;parcels:number;water:number;bag:number;wateringTarget:string|null;wateringStarted:number};
-export type TownState={planning:PlanningState;election:ElectionState;civic:CivicState;resident:Resident;town:{id:string;name:string;private:boolean;key?:string;treasury:number;project:number;prosperity:number;residents:number};peers:Peer[];properties:{home:number;items:string[];name:string;house?:string;catPet?:string|null;dogPet?:string|null}[];occupied:number[];completed:string[];worldWork:{id:string;target:string;completed:number}[];lawnCuts:string[];grassHistory?:{cell:string;cut_at:number}[];townCreated?:number;parcelHomes?:number[];parcelResets?:number;events:{name:string;text:string}[]};
+export type Resident={emote?:string|null;emoteUntil?:number;catPet?:string|null;dogPet?:string|null;townJoinedAt?:number;house?:string;upkeepDue?:number;upkeepNote?:string;riding?:boolean;outfit?:string;hat?:string;accessory?:string;id:string;name:string;color:string;home:number|null;job:string|null;coins:number;xp:number;education:number;lastStudy:string|null;x:number;z:number;items:string[];mowing:boolean;shift:string|null;papers:number;parcels:number;water:number;bag:number;wateringTarget:string|null;wateringStarted:number};
+export type Peer={emote?:string|null;emoteUntil?:number;house?:string;upkeepDue?:number;upkeepNote?:string;riding?:boolean;outfit?:string;hat?:string;accessory?:string;id:string;name:string;color:string;x:number;z:number;mowing:boolean;shift:string|null;papers:number;parcels:number;water:number;bag:number;wateringTarget:string|null;wateringStarted:number};
+export type TownState={life?:SharedLifeState;planning:PlanningState;election:ElectionState;civic:CivicState;resident:Resident;town:{id:string;name:string;private:boolean;key?:string;treasury:number;project:number;prosperity:number;residents:number};peers:Peer[];properties:{home:number;items:string[];name:string;house?:string;catPet?:string|null;dogPet?:string|null}[];occupied:number[];completed:string[];worldWork:{id:string;target:string;completed:number}[];lawnCuts:string[];grassHistory?:{cell:string;cut_at:number}[];townCreated?:number;parcelHomes?:number[];parcelResets?:number;events:{name:string;text:string}[]};
 
 // Each patch has a stable identity shared by the scene and the authoritative server.
 export const GRASS_REGROW_MS=24*60*60*1000;
@@ -27,6 +28,7 @@ type GrassCell={id:string;task:string;x:number;z:number;row:number;size:number};
 // Keep existing patch IDs so neighbors' recent work survives this town expansion.
 const originalLawns:GrassCell[]=TASKS.filter(t=>t.job==='mow').flatMap(t=>Array.from({length:40},(_,i)=>({id:`${t.id}:${i}`,task:t.id,x:t.x+(i%8-3.5)*.65,z:t.z+(Math.floor(i/8)-2)*.65,row:Math.floor(i/8),size:.65})));
 export function isGrassGround(x:number,z:number){
+ if(Math.abs(x-PICNIC.x)<3&&Math.abs(z-PICNIC.z)<2.5)return false;
  if(Math.abs(x)>58||z< -53||z>50||inCommunityGarden(x,z,.25)||isTownBlocked(x,z))return false;
  if(x>23.1&&x<32.9)return false;
  if(Math.abs(x)<21&&Math.abs(z)<19)return false;

@@ -8,7 +8,7 @@ export function farmScenery({box,ball,cylinder,roof}:Kit,open:boolean){
  for(const road of FARM_ROADS)box(road.width,.055,road.depth,open?'#d4c5a0':'#b3a387',road.x,.2,road.z);
  for(let x=-62;x>=-112;x-=3){if(!open){box(1.7,.09,2.9,x>-73?'#c8b896':'#a9a080',x,.24,-21);for(const z of [-23.2,-18.8]){box(.12,.75,.12,'#9e8056',x,.5,z);box(.27,.18,.18,'#e3c379',x,.85,z);}}}
  // Surveyed fields are visible from town; opening adds planted rows and a barn.
- for(const x of [-79,-70])for(const z of [-11,0,11]){box(6.3,.09,6.4,open?'#97764e':'#a19671',x,.21,z);for(let row=0;row<5;row++){box(5.7,.06,.35,open?'#765c40':'#958965',x,.3,z-2.4+row*1.2);if(open)for(let i=0;i<8;i++){const xx=x-2.5+i*.72,zz=z-2.4+row*1.2;const plant=ball(.22,row%2?'#84a14d':'#739245',xx,.5,zz);plant.scale.y=1.4;if(row%2===0)ball(.09,'#d79257',xx,.68,zz);}}}
+ for(const x of [-79,-70])for(const z of [-11,0,11]){box(6.3,.09,6.4,open?'#97764e':'#a19671',x,.21,z);for(let row=0;row<5;row++){box(5.7,.06,.35,open?'#765c40':'#958965',x,.3,z-2.4+row*1.2);}}
  for(const x of [-110,-102,-95])for(const z of [6,14]){cylinder(.18,1.7,'#93714c',x,1,z);ball(1.05,open?'#829e54':'#949f73',x,2.25,z);if(open)for(const dx of [-.5,.5])ball(.13,'#cc865a',x+dx,2.3,z+.65);}
  for(let z=-24;z<=22;z+=2){if(z>-24&&z<-18)continue;box(.14,.85,.14,'#cabb91',-60,.6,z);box(.08,.12,1.95,'#cabb91',-60,.65,z+.9);}
  for(const z of [-24,22])for(let x=-114;x<-62;x+=3){box(.14,.8,.14,'#b6a67a',x,.55,z);box(2.9,.1,.09,'#bcad83',x+1.45,.7,z);}
