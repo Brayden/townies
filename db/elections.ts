@@ -31,7 +31,7 @@ export async function electionAction(d:D1Database,r:Voter,action:'nominate'|'vot
  if(cycle!==schedule.cycle)return {error:'The election calendar has changed. Open the ballot again.',status:409};
  const allBuilt=async()=>{const row=await d.prepare('SELECT COUNT(*) AS n FROM town_projects WHERE town_id=? AND completed>0').bind(r.town_id).first<{n:number}>();return (row?.n??0)>=CIVIC_PROJECTS.length};
  if(action==='platform'){
-  if(schedule.active)return {error:'Campaign promises are locked while voting is open.',status:409};
+  if(now>=schedule.opensAt)return {error:'Voting has begun. Campaign promises are permanently locked for this election.',status:409};
   if((!projectById(platform)&&!(platform===null&&await allBuilt()))||typeof tax!=='number'||![0,1,2].includes(tax))return {error:'Choose a town project and tax policy.',status:400};
   if(platform&&await d.prepare('SELECT id FROM town_projects WHERE town_id=? AND id=? AND completed>0').bind(r.town_id,platform).first())return {error:'That upgrade is already complete. Choose another promise.',status:409};
   const result=await d.prepare('UPDATE election_candidates SET platform=?,tax=? WHERE town_id=? AND cycle=? AND resident_id=?').bind(platform,tax,r.town_id,schedule.cycle,r.id).run();

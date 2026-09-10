@@ -16,7 +16,15 @@ assert.equal(await electionAction(d,a,'nominate','2026-09',null,pre,'park-stage'
 assert.equal(await electionAction(d,a,'platform','2026-09',null,pre,'flower-walk',1),null);
 assert.equal(await electionAction(d,a,'platform','2026-09',null,pre,'park-stage',2),null);
 assert.equal((await readElection(d,b,pre)).candidates[0].platform,'park-stage');
+assert.equal(await electionAction(d,a,'platform','2026-09',null,open-1,'park-stage',2),null,'Can edit until the instant voting opens');
 assert.equal((await electionAction(d,a,'platform','2026-09',null,open,'flower-walk',0)).status,409,'Cannot change promises during voting');
+await electionAction(d,a,'nominate','2026-09',null,open,'flower-walk',0);
+assert.equal((await readElection(d,b,open)).candidates[0].platform,'park-stage','Re-nomination cannot replace a locked pledge');
+assert.equal((await readElection(d,b,open)).candidates[0].tax,2,'Re-nomination cannot replace a locked tax promise');
+assert.equal((await electionAction(d,a,'platform','2026-09',null,close,'flower-walk',0)).status,409,'Closing the election never unlocks its promise');
+const locked=sqlite.prepare('SELECT platform,tax FROM election_candidates WHERE resident_id=? AND cycle=?').get(a.id,'2026-09');
+assert.equal(locked.platform,'park-stage');assert.equal(locked.tax,2);
+
 await electionAction(d,b,'vote','2026-09',a.id,open);
 assert.equal((await civicAction(d,a,{action:'set-tax',term:'2026-09',tax:2,previousTax:1},open)).status,403,'No mayor powers before election closes');
 await Promise.all([syncGovernance(d,a.town_id,close),syncGovernance(d,a.town_id,close)]);

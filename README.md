@@ -83,7 +83,7 @@ Existing resident XP remains the complete overall work-XP total because resident
 
 ### Campaign promises and town government
 
-Candidates choose one of 12 permanent town upgrades and one of three work-tax policies (0, 1, or 2 coins per completed action). Promises can be edited before voting and lock during voting. Existing candidacies without a project remain readable. The elected winner’s project and tax policy activate once when the closed election is first observed; no votes retain the prior mayor. A new term never removes built upgrades or existing project funding.
+Candidates choose one of 12 permanent town upgrades and one of three work-tax policies (0, 1, or 2 coins per completed action). Promises can be edited only before voting begins and remain permanently locked for that election afterward, including after polls close. A later election has its own separate campaign. Existing candidacies without a project remain readable. The elected winner’s project and tax policy activate once when the closed election is first observed; no votes retain the prior mayor. A new term never removes built upgrades or existing project funding.
 
 The featured project appears in the HUD and Town Hall, with a camera link to its location. Mayors allocate town coins in installments or complete the remaining budget. They must finish the featured project before selecting another. Residents can contribute 25 personal coins to the general town fund. Original pocket-park sponsorship remains available separately. Each allocation, completion, tax change, term activation, and fund donation is retained in a civic ledger; Town Hall shows the 20 most recent decisions. Completed projects credit the commissioning mayor in the town and future ballots.
 
