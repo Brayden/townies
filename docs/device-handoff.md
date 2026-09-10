@@ -1,0 +1,9 @@
+# Movement across devices
+
+Each open page has its own temporary device ID. Actual movement input (a new key press, joystick touch, click-to-walk, indoor movement or floor selection) requests control. Opening the page, returning to a tab, and heartbeats never claim it. Starting a physical interaction or changing locations also requests control. The current controller can keep moving without waiting for its ownership check; a newly controlling device starts from the authoritative saved position.
+
+The resident stores the owning device, a control epoch and the last movement update time. Takeover changes the epoch atomically against the version the requesting device observed. Old controller packets and delayed takeover requests cannot overwrite the new owner. A fresh deliberate input after observing the new owner can take control again. Repeated keys and automatic walking do not generate takeover requests. Reconfirming control from the existing owner preserves the epoch and movement clock.
+
+Standby heartbeats only update presence. They do not reset movement validation timing, move the resident, or cut grass. An older game tab without a device ID may use legacy movement only until a modern device first claims the resident. Afterwards its movement is ignored. Standby scenes follow the saved outdoor position, or the saved room position and floor indoors. Losing control clears the old path and joystick input; stale movement snapshots cannot roll ownership or position back. No sign-out or explicit handoff button is required.
+
+Verified with local tests for one account on two device IDs: interleaved standby and legacy packets, movement allowance after idle polling, delayed takeover rejection, explicit takeover back, and indoor position/floor control. Existing room access and social permission tests also pass.
