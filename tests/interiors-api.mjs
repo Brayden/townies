@@ -21,4 +21,10 @@ a=await ok('a','home-place',{...purchase,revision:a.resident.interiorRevision});
 a=await ok('a','home-exit');assert.equal(a.resident.inside,false);assert.equal(a.resident.x,door.x);assert.equal(a.resident.z,door.z);b=await ok('b');assert.ok(b.peers.some(p=>p.id===a.resident.id),'Neighbor sees owner come back outside');
 assert.equal((await game('b','home-place',{...purchase,owner:a.resident.id})).status,403);
 a=await ok('a','home-enter',{home:0});assert.equal(a.resident.interior.wall,'sky');assert.ok(a.resident.interior.placed.some(p=>p.id==='plant-flowers'));
+// Existing room data remains downstairs; upper floors gain independent saved layouts.
+local(`UPDATE residents SET house='meadow-3' WHERE id='${a.resident.id}'`);a=await ok('a');
+a=await ok('a','home-place',{item:'bed-meadow',x:-3,z:-2,rotation:0,level:1,revision:a.resident.interiorRevision});assert.equal(a.resident.interior.placed.find(p=>p.id==='bed-meadow').level,1);assert.equal(a.resident.coins,915);
+a=await ok('a','home-finish',{wall:'rose',floor:'birch',level:1,revision:a.resident.interiorRevision});assert.equal(a.resident.interior.wall,'sky');assert.equal(a.resident.interior.upperFinishes['1'].wall,'rose');
+assert.equal((await game('a','home-place',{item:'plant-fern',x:0,z:0,rotation:0,level:2,revision:a.resident.interiorRevision})).status,400);
+a=await ok('a','home-exit');a=await ok('a','home-enter',{home:0});assert.equal(a.resident.interior.placed.find(p=>p.id==='bed-meadow').level,1);assert.equal(a.resident.interior.upperFinishes['1'].floor,'birch');
 console.log('PASS: live Worker private doors, indoor presence, owner labels, blocked outdoor work and teleporting, concurrent purchase, decoration persistence, furniture storage, free replacement, and exit/return.');

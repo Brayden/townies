@@ -16,3 +16,12 @@ export function furnitureModel(f:Furniture,k:InteriorKit){const g=new THREE.Grou
  if(f.kind==='rug'){box(w,.035,d,c,0,.025,0,g);for(const x of [-w/2+.12,w/2-.12])box(.06,.007,d-.12,cream,x,.047,0,g);for(const z of [-d/2+.12,d/2-.12])box(w-.12,.007,.06,cream,0,.047,z,g);for(let x=-w/2+.2;x<w/2;x+=.2)for(const z of [-d/2-.01,d/2+.01])box(.035,.018,.12,cream,x,.025,z,g);}
  g.userData.furniture=f.id;return g;}
 export function disposeGeometry(g:THREE.Object3D){g.traverse(o=>{if(o instanceof THREE.Mesh)o.geometry.dispose()});}
+
+export function staircaseModel(k:InteriorKit,level:number,count:number){
+ const g=new THREE.Group(),{box}=k,up=level<count-1,wood='#a57d55',trim='#e4d3ab';g.userData.floorTo=up?level+1:level-1;
+ if(up){for(let i=0;i<9;i++){const h=.24*(i+1);box(1.35,h,.25,wood,0,h/2,1-i*.24,g);box(1.39,.055,.28,trim,0,h+.025,1-i*.24,g);}for(const x of [-.78,.78]){for(let i=0;i<4;i++)box(.09,.72,.09,wood,x,.6+i*.57,.9-i*.57,g);const rail=box(.1,.1,2.85,wood,x,1.58,.05,g);rail.rotation.x=.78;}}
+ else{box(1.4,.03,2.5,'#635847',0,.07,0,g);for(let i=0;i<8;i++)box(1.32,.025,.15,i%2?wood:'#85684c',0,.09,-1+i*.3,g);for(const x of [-.78,.78]){for(const z of [-1,0,1])box(.09,.8,.09,wood,x,.46,z,g);box(.11,.1,2.2,trim,x,.86,0,g);}}
+ box(1.85,.08,.55,trim,0,.06,1.5,g);
+ const addArrow=(x:number,to:number,c:string)=>{const plate=box(.65,.06,.46,c,x,.13,1.5,g);plate.userData.floorTo=to;for(const side of [-1,1]){const mark=box(.065,.018,.23,'#fff9df',x+side*.065,.17,1.5,g);mark.rotation.y=side*(to>level?1:-1)*Math.PI/4;mark.userData.floorTo=to;}};
+ if(up)addArrow(level>0?.43:0,level+1,'#668968');if(level>0)addArrow(up?-.43:0,level-1,'#638d9c');return g;
+}

@@ -6,8 +6,8 @@ import {interiorAction} from '../db/interiors.ts';
 import {moveTown} from '../db/moving.ts';
 import {HOMES} from '../app/game/data.ts';
 import {HOUSES} from '../app/game/lifestyle.ts';
-import {FURNITURE,roomSize,starterInterior,readInterior,firstFurnitureSpot,fittedFurniture,placementIssue,homeDoor,furnitureRect} from '../app/game/interiors.ts';
-import {interiorKit,furnitureModel,disposeGeometry} from '../app/game/interiorModels.ts';
+import {FURNITURE,roomSize,floorCount,floorFinishes,stairwell,starterInterior,readInterior,firstFurnitureSpot,fittedFurniture,placementIssue,homeDoor,furnitureRect} from '../app/game/interiors.ts';
+import {interiorKit,furnitureModel,staircaseModel,disposeGeometry} from '../app/game/interiorModels.ts';
 import {EMPTY_PLANNING,townLayout} from '../app/game/charters.ts';
 import {isTownBlocked} from '../app/game/townLayout.ts';
 import {findPath} from '../app/game/pathfinding.ts';
@@ -39,5 +39,16 @@ const starter=starterInterior();assert.equal(FURNITURE.length,22);assert.equal(s
 for(const house of HOUSES){assert.ok(roomSize(house.id).width>=8);assert.equal(fittedFurniture(starter,house.id).length,5);for(const f of FURNITURE){assert.ok(firstFurnitureSpot(f.id,[],house.id),`${f.id} fits ${house.id}`);}}
 const packed={...starter,owned:[...starter.owned,'shelf-books'],placed:[...starter.placed,{id:'shelf-books',x:6,z:-4,rotation:0}]};assert.equal(fittedFurniture(packed,'meadow-5').length,6);assert.equal(fittedFurniture(packed,'meadow-1').length,5);assert.equal(packed.placed.length,6,'Downgrade never deletes furniture');
 const layout=townLayout(EMPTY_PLANNING),blocked=(x,z)=>isTownBlocked(x,z,layout);for(const h of HOMES){const door=homeDoor(h);assert.equal(blocked(door.x,door.z),false,h.name);const path=findPath({x:0,z:6},door,blocked);assert.ok(path.length,h.name);assert.ok(Math.hypot(path.at(-1).x-door.x,path.at(-1).z-door.z)<1.8,h.name);}
-const kit=interiorKit();for(const f of FURNITURE){const g=furnitureModel(f,kit);const bounds=new THREE.Box3().setFromObject(g);assert.ok(bounds.min.y>-.03,f.id);assert.ok(bounds.max.y<2.9,f.id);assert.ok(bounds.max.x-bounds.min.x<=f.w+.02,f.id);assert.ok(bounds.max.z-bounds.min.z<=f.d+.02,f.id);disposeGeometry(g);}kit.dispose();
+// Story counts mirror the existing exterior: Nook/Cottage 1, House/Villa 2, Manor 3.
+for(const h of HOUSES){assert.equal(floorCount(h.id),1+Math.floor((h.level-1)/2));for(let level=0;level<floorCount(h.id);level++){for(const f of FURNITURE)assert.ok(firstFurnitureSpot(f.id,[],h.id,level));if(floorCount(h.id)>1){const w=stairwell(h.id);assert.match(placementIssue({id:'plant-fern',x:Math.round(w.x*2)/2,z:w.z,rotation:0,level},[],h.id),/stairs/);}}}
+sql.exec("UPDATE residents SET house='meadow-3',inside=1,interior='{}',interior_revision=0,coins=1000 WHERE id='b'");
+assert.equal(await act('b','home-place',{item:'bed-meadow',x:-3,z:-2,rotation:0,level:1,revision:0}),null);
+let upstairs=readInterior(row('b').interior);assert.ok(!fittedFurniture(upstairs,'meadow-3',0).some(p=>p.id==='bed-meadow'));assert.ok(fittedFurniture(upstairs,'meadow-3',1).some(p=>p.id==='bed-meadow'));assert.equal(row('b').coins,1000,'Moving upstairs costs nothing');
+assert.equal(await act('b','home-finish',{wall:'sky',floor:'walnut',level:1,revision:1}),null);upstairs=readInterior(row('b').interior);assert.equal(floorFinishes(upstairs,0).wall,'house');assert.equal(floorFinishes(upstairs,1).wall,'sky');
+assert.equal((await act('b','home-place',{item:'plant-fern',x:0,z:0,rotation:0,level:2,revision:2})).status,400,'Cannot place on nonexistent third floor');
+sql.exec("UPDATE residents SET house='meadow-1' WHERE id='b'");upstairs=readInterior(row('b').interior);assert.equal(fittedFurniture(upstairs,'meadow-1',1).length,0);assert.ok(upstairs.owned.includes('bed-meadow'));assert.equal(floorFinishes(upstairs,1).wall,'sky','Downsizing preserves upper-floor finishes');
+assert.equal((await act('b','home-finish',{wall:'rose',floor:'oak',level:1,revision:2})).status,400);assert.equal(await act('b','home-place',{item:'bed-meadow',x:-3,z:-2,rotation:0,level:0,revision:2}),null,'Packed upstairs furniture can return downstairs');
+sql.exec("UPDATE residents SET house='meadow-5' WHERE id='b'");assert.equal(await act('b','home-place',{item:'bed-meadow',x:-3,z:-2,rotation:0,level:2,revision:3}),null);assert.equal(fittedFurniture(readInterior(row('b').interior),'meadow-5',2).length,1);
+const legacy=readInterior(JSON.stringify(starterInterior()));assert.equal(fittedFurniture(legacy,'meadow-3').length,5,'Legacy layouts stay downstairs');
+const kit=interiorKit();for(const f of FURNITURE){const g=furnitureModel(f,kit);const bounds=new THREE.Box3().setFromObject(g);assert.ok(bounds.min.y>-.03,f.id);assert.ok(bounds.max.y<2.9,f.id);assert.ok(bounds.max.x-bounds.min.x<=f.w+.02,f.id);assert.ok(bounds.max.z-bounds.min.z<=f.d+.02,f.id);disposeGeometry(g);}for(const count of [2,3])for(let level=0;level<count;level++){const stairs=staircaseModel(kit,level,count),bounds=new THREE.Box3().setFromObject(stairs);assert.ok(bounds.max.y<2.9);assert.ok(bounds.max.x-bounds.min.x<2.1);assert.ok(bounds.max.z-bounds.min.z<3.6);disposeGeometry(stairs);}kit.dispose();
 console.log('PASS: 50 reachable own doors, private entry, job shutdown, starter furniture, atomic purchase and retry, free rearrangement/storage, invalid and blocked placements, finish persistence, insufficient funds, preserved furniture on moves/downgrades, all 50 house sizes and 22 models.');

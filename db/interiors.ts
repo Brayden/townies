@@ -1,5 +1,5 @@
 import {HOMES} from '../app/game/data.ts';
-import {homeDoor,readInterior,FINISHES,furnitureById,placementIssue,fittedFurniture,type PlacedFurniture} from '../app/game/interiors.ts';
+import {homeDoor,readInterior,FINISHES,floorCount,furnitureById,placementIssue,fittedFurniture,type PlacedFurniture} from '../app/game/interiors.ts';
 type Resident={id:string;town_id:string;town_joined_at:number;home:number|null;house:string;x:number;z:number;inside:number;interior:string;interior_revision:number};
 export async function interiorAction(d:D1Database,r:Resident,b:Record<string,unknown>,now:number){
  const fail=(error:string,status=409)=>({error,status});
@@ -17,17 +17,18 @@ export async function interiorAction(d:D1Database,r:Resident,b:Record<string,unk
  }
  if(!r.inside)return fail('Step inside your own home to decorate.',403);
  if(b.revision!==r.interior_revision)return fail('Your room changed on another screen. Reloading the latest arrangement.');
+ const level=b.level??0;if(typeof level!=='number'||!Number.isInteger(level)||level<0||level>=floorCount(r.house))return fail('This house does not have that floor.',400);
  const interior=readInterior(r.interior);let cost=0;
  if(b.action==='home-finish'){
   if(!FINISHES.wall.some(f=>f.id===b.wall)||!FINISHES.floor.some(f=>f.id===b.floor))return fail('Choose one of the wall and floor finishes.',400);
-  interior.wall=String(b.wall);interior.floor=String(b.floor);
+  if(level===0){interior.wall=String(b.wall);interior.floor=String(b.floor);}else{interior.upperFinishes={...interior.upperFinishes,[String(level)]:{wall:String(b.wall),floor:String(b.floor)}};}
  }else if(b.action==='home-store'){
   if(!interior.owned.includes(String(b.item)))return fail('This piece is not in your collection.',400);
   interior.placed=interior.placed.filter(p=>p.id!==b.item);
  }else if(b.action==='home-place'){
   const f=furnitureById(b.item);if(!f)return fail('Choose a piece from the furniture collection.',400);
-  const p={id:f.id,x:b.x,z:b.z,rotation:b.rotation} as PlacedFurniture;
-  const issue=placementIssue(p,fittedFurniture(interior,r.house),r.house);if(issue)return fail(issue,400);
+  const p={id:f.id,x:b.x,z:b.z,rotation:b.rotation,level} as PlacedFurniture;
+  const issue=placementIssue(p,fittedFurniture(interior,r.house,level),r.house);if(issue)return fail(issue,400);
   cost=interior.owned.includes(f.id)?0:f.price;
   if(!interior.owned.includes(f.id))interior.owned.push(f.id);
   interior.placed=[...interior.placed.filter(p=>p.id!==f.id),p];
