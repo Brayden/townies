@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {Package,Check,BookOpen,Sprout,Mailbox,Flower2,Landmark,Shirt,Store,Coffee,GraduationCap,Map as MapIcon,Minus,Plus,X} from 'lucide-react';
+import {Tractor,LockKeyhole,Package,Check,BookOpen,Sprout,Mailbox,Flower2,Landmark,Shirt,Store,Coffee,GraduationCap,Map as MapIcon,Minus,Plus,X} from 'lucide-react';
+import {TOWN_FARM,FARM_GATE,farmIsOpen} from './townFarm';
 import {HOMES,type TownState} from './data';
 import {WORK_TARGETS,WORK_DAY_MS} from './workTargets';
 import {GARDEN_AREAS} from './gardenAreas';
@@ -15,9 +16,9 @@ export default function MiniMap({data,getPosition,onLook}:{data:TownState;getPos
  const [level,setLevel]=useState(0),[open,setOpen]=useState(false),[position,setPosition]=useState({x:data.resident.x,z:data.resident.z});
  useEffect(()=>{const timer=setInterval(()=>{const p=getPosition();if(p)setPosition({x:p.x,z:p.z})},100);return()=>clearInterval(timer)},[getPosition]);
  const buildings=townBuildings(data.planning),expanded=data.planning.territories.length>0;
- const paper=data.resident.shift==='paper',garden=data.resident.shift==='garden',parcel=data.resident.shift==='deliver',route=paper||garden||parcel,stops=paper?paperStops:parcel?WORK_TARGETS.filter(t=>t.job==='deliver'&&data.parcelHomes?.includes(t.home!)):gardenStops,Marker=paper?Mailbox:parcel?Package:Flower2,zoom=ZOOMS[level],span=(expanded?208:128)/zoom;
+ const paper=data.resident.shift==='paper',garden=data.resident.shift==='garden',parcel=data.resident.shift==='deliver',route=paper||garden||parcel,stops=paper?paperStops:parcel?WORK_TARGETS.filter(t=>t.job==='deliver'&&data.parcelHomes?.includes(t.home!)):gardenStops,Marker=paper?Mailbox:parcel?Package:Flower2,zoom=ZOOMS[level],span=(expanded?236:184)/zoom;
  const clamp=(v:number,min:number,max:number)=>span>=max-min?(min+max)/2:Math.max(min+span/2,Math.min(max-span/2,v));
- const cx=clamp(position.x,-64,expanded?116:64),cz=clamp(position.z,expanded?-99:-64,expanded?101:64),unit=span/220;
+ const cx=clamp(position.x,-118,expanded?116:64),cz=clamp(position.z,expanded?-99:-64,expanded?101:64),unit=span/220;
  const delivered=new Set(data.worldWork.filter(w=>Date.now()-w.completed<WORK_DAY_MS).map(w=>w.id));
  const count=stops.filter(t=>delivered.has(t.group)).length;
  function lookFromMap(svg:SVGSVGElement,clientX:number,clientY:number){
@@ -30,7 +31,8 @@ export default function MiniMap({data,getPosition,onLook}:{data:TownState;getPos
   <div className="minimap-content paper" id="town-minimap-content">
    <div className="minimap-heading"><strong>{paper?'Paper route':parcel?'Parcel route':garden?'Garden care':data.town.name}</strong><span>N ↑</span></div>
    <svg className="town-minimap-map" onClick={e=>lookFromMap(e.currentTarget,e.clientX,e.clientY)} style={{cursor:'crosshair'}} aria-describedby="minimap-look-hint" viewBox={`${cx-span/2} ${cz-span/2} ${span} ${span}`} role="img" aria-label={paper?`${count} of ${stops.length} houses delivered. Green checked mailboxes are delivered; gray mailboxes are waiting.`:garden?`${count} of ${stops.length} beds watered. Green checked flowers are watered; gray flowers need water.`:'Town streets, homes, neighbors, and your position.'}>
-    <rect x="-80" y="-110" width="220" height="230" fill="#78bbc9"/>{TERRITORIES.filter(t=>data.planning.territories.includes(t.id)).map(t=><rect key={t.id} x={t.x-t.width/2} y={t.z-t.depth/2} width={t.width} height={t.depth} fill="#b0c888"/>)}<rect x="-64" y="-64" width="128" height="128" fill="#afc487"/>
+    <rect x="-125" y="-110" width="265" height="230" fill="#78bbc9"/>{TERRITORIES.filter(t=>data.planning.territories.includes(t.id)).map(t=><rect key={t.id} x={t.x-t.width/2} y={t.z-t.depth/2} width={t.width} height={t.depth} fill="#b0c888"/>)}<rect x="-64" y="-64" width="128" height="128" fill="#afc487"/>
+    <g><title>{farmIsOpen(data.planning)?'Town Farm · open':'Future Town Farm · road closed'}</title><rect x={TOWN_FARM.x-TOWN_FARM.width/2} y={TOWN_FARM.z-TOWN_FARM.depth/2} width={TOWN_FARM.width} height={TOWN_FARM.depth} fill={farmIsOpen(data.planning)?'#9fbd73':'#aaa98a'} stroke="#7b815b" strokeWidth=".6" strokeDasharray={farmIsOpen(data.planning)?undefined:'2 2'}/><path d="M-60 -21H-113" stroke={farmIsOpen(data.planning)?'#e5d5ad':'#d3b681'} strokeWidth="3.6" strokeDasharray={farmIsOpen(data.planning)?undefined:'3 2'}/><Tractor x={-91-7*unit} y={-10-7*unit} width={14*unit} height={14*unit} color="#586d49"/>{!farmIsOpen(data.planning)&&<LockKeyhole x={FARM_GATE.x-5*unit} y={FARM_GATE.z-6*unit} width={10*unit} height={12*unit} color="#796041"/>}</g>
     {[...ROADS,...expansionRoads(data.planning)].map((r,i)=><rect key={i} x={r.x-r.width/2} y={r.z-r.depth/2} width={r.width} height={r.depth} fill="#e5d5ad"/>)}
     <rect x="-64" y="57" width="128" height="7" fill="#78bbc9"/><path d="M28-64V64" stroke="#78bbc9" strokeWidth="9"/>
     {BRIDGES.map(b=><path key={b.id} d={`M21 ${b.z}H35`} stroke="#aa8051" strokeWidth="5"/>)}

@@ -67,5 +67,6 @@ export function conceptScenery(k:Kit,expanded:{north:boolean;east:boolean}={nort
  // Street trees establish block edges without obscuring the civic frontage.
  for(const [x,z]of [[-20,-15],[-20,4],[-19,15],[20,15],[20,-16],[-6,-4],[6,-4],[-6,5],[6,5],[-19,-27],[2,-28]])tree(x,z,.6);
  if(!expanded.north)for(let i=0;i<48;i++){const x=-72+(i%24)*6+Math.sin(i*7)*1.5,z=(i<24?-60:-66)+Math.cos(i*3)*1.2;tree(x,z,1.15+(i%3)*.16)}
- for(let i=0;i<30;i++){if(i>=15&&expanded.east)continue;const z=-54+(i%15)*7,x=i<15?-66:67;tree(x,z,1.05+(i%4)*.15)}
+ // Leave the western farm and its construction road visible through the tree line.
+ for(let i=0;i<30;i++){if(i>=15&&expanded.east)continue;const z=-54+(i%15)*7,x=i<15?-66:67;if(i<15&&z>=-26&&z<=24)continue;tree(x,z,1.05+(i%4)*.15)}
 }

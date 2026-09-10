@@ -1,0 +1,1 @@
+ALTER TABLE `towns` ADD `farm_funded` integer DEFAULT 0 NOT NULL;

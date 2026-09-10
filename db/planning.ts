@@ -8,13 +8,14 @@ export async function settlePlans(d:D1Database,town:string,now:number){
 }
 export async function readPlanning(d:D1Database,town:string,resident:string,now=Date.now()):Promise<PlanningState>{
  await settlePlans(d,town,now);
- const [land,institutions,buildings,plans]=await Promise.all([
+ const [farm,land,institutions,buildings,plans]=await Promise.all([
+  d.prepare('SELECT farm_funded FROM towns WHERE id=?').bind(town).first<{farm_funded:number}>(),
   d.prepare('SELECT id FROM town_territories WHERE town_id=?').bind(town).all<{id:string}>(),
   d.prepare('SELECT id,node,plot,x,z,rotation FROM charter_institutions WHERE town_id=?').bind(town).all<Institution>(),
   d.prepare('SELECT plot,kind,x,z,rotation FROM parcel_buildings WHERE town_id=?').bind(town).all<ParcelBuilding>(),
   d.prepare('SELECT p.id,p.kind,p.institution,p.option,p.from_node AS fromNode,p.from_plot AS fromPlot,p.cost,p.funded,p.status,p.created,p.closes,p.electorate,p.quorum,p.name,COUNT(CASE WHEN v.vote=1 THEN 1 END) AS yes,COUNT(CASE WHEN v.vote=0 THEN 1 END) AS no,(SELECT vote FROM plan_voters WHERE plan_id=p.id AND resident_id=?) AS myVote,EXISTS(SELECT 1 FROM plan_voters WHERE plan_id=p.id AND resident_id=?) AS eligible FROM town_plans p LEFT JOIN plan_voters v ON v.plan_id=p.id WHERE p.town_id=? GROUP BY p.id ORDER BY p.created DESC,p.id DESC LIMIT 12').bind(resident,resident,town).all<PlanProposal>()
  ]);
- return {territories:land.results.map(t=>t.id),institutions:INSTITUTIONS.map(i=>institutions.results.find(r=>r.id===i.id)??{id:i.id,node:'root',plot:i.plot}),buildings:buildings.results,proposals:plans.results.map(p=>({...p,eligible:!!p.eligible}))};
+ return {farmFunded:farm?.farm_funded??0,territories:land.results.map(t=>t.id),institutions:INSTITUTIONS.map(i=>institutions.results.find(r=>r.id===i.id)??{id:i.id,node:'root',plot:i.plot}),buildings:buildings.results,proposals:plans.results.map(p=>({...p,eligible:!!p.eligible}))};
 }
 export function validatePlan(s:PlanningState,b:Record<string,unknown>){
  const kind=b.kind,institution=s.institutions.find(i=>i.id===b.institution),plot=institution?plotById(institution.plot):null;

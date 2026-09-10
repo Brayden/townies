@@ -1,3 +1,4 @@
+import {farmAction} from '@/db/townFarm';
 import {maintainHomes,lifestyleAction} from '@/db/lifestyle';
 import {parcelHomes,dayStart,DAY_MS,capacity} from '@/app/game/lifestyle';
 import {readPlanning,planningAction} from '@/db/planning';
@@ -24,7 +25,8 @@ if(b.action==='join'){const account=req.headers.get('oai-authenticated-user-id')
 const id=crypto.randomUUID();const result=await d.prepare('INSERT INTO residents(id,token_hash,town_id,name,color,seen,created) SELECT ?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM residents WHERE town_id=?)<50 RETURNING *').bind(id,await hash(account),townId,name,COLORS.includes(b.color)?b.color:COLORS[0],now,now,townId).first<Row>();if(!result)return json({error:'This town has reached 50 residents. Please choose another town.'},409);return json(await state(result))}
 if(!r)return json({error:'Join a town or enter your resident pass first.'},401);
 const policy=['heartbeat','use','finish'].includes(b.action)?(await syncGovernance(d,r.town_id,now),await payPolicy(d,r.town_id)):null;
-if(['house','move-home','bike','wardrobe'].includes(b.action)){const error=await lifestyleAction(d,r,b,now);if(error)return json(error,error.status);}
+if(b.action==='fund-farm'){const error=await farmAction(d,r,b,now);if(error)return json(error,error.status);r!.planning=undefined;}
+else if(['house','move-home','bike','wardrobe'].includes(b.action)){const error=await lifestyleAction(d,r,b,now);if(error)return json(error,error.status);}
 else if(['plan-propose','plan-vote','plan-fund','plan-place'].includes(b.action)){const error=await planningAction(d,r,b,now);if(error)return json({error:error.error},error.status);}
 else if(b.action==='ferry'){const planning=r.planning??await readPlanning(d,r.town_id,r.id,now);if(!planning.territories.includes('island'))return json({error:'The town must approve and fund Sunrise Island first.'},409);const from=FERRY_STOPS.findIndex(p=>Math.hypot(p.x-r!.x,p.z-r!.z)<=2);if(from<0)return json({error:'Visit a ferry landing to board.'},400);const to=FERRY_STOPS[1-from];await d.prepare('UPDATE residents SET x=?,z=?,seen=?,riding=0,shift=NULL,mowing=0,action_target=NULL,action_started=0 WHERE id=?').bind(to.x,to.z,now,r.id).run();}
 else if(['set-tax','fund-project','feature-project','support-project'].includes(b.action)){const error=await civicAction(d,r,b,now);if(error)return json({error:error.error},error.status);}
@@ -77,11 +79,11 @@ else if(b.action==='water-start'||b.action==='use'){
 }
 else if(b.action==='heartbeat'){
  const x=Number(b.x),z=Number(b.z);
- if(!Number.isFinite(x)||!Number.isFinite(z)||x< -61||x>113||z< -97||z>99)return json({error:'Stay inside the town boundary.'},400);
+ if(!Number.isFinite(x)||!Number.isFinite(z)||x< -117||x>113||z< -97||z>99)return json({error:'Stay inside the town boundary.'},400);
  const elapsed=Math.max(.1,Math.min((now-r.seen)/1000,3));
  const layout=townLayout(r.planning??await readPlanning(d,r.town_id,r.id,now));const blocked=(x:number,z:number)=>isTownBlocked(x,z,layout);
  const trail=Array.isArray(b.path)?b.path:[];
- if(trail.length>32||trail.some((p:any)=>!p||typeof p.x!=='number'||typeof p.z!=='number'||!Number.isFinite(p.x)||!Number.isFinite(p.z)||p.x< -61||p.x>113||p.z< -97||p.z>99))return json({error:'That movement path is not valid.'},400);
+ if(trail.length>32||trail.some((p:any)=>!p||typeof p.x!=='number'||typeof p.z!=='number'||!Number.isFinite(p.x)||!Number.isFinite(p.z)||p.x< -117||p.x>113||p.z< -97||p.z>99))return json({error:'That movement path is not valid.'},400);
  const path=[{x:r.x,z:r.z},...trail,{x,z}],segments=path.slice(1).map((p,i)=>({a:path[i],b:p}));
  const distance=segments.reduce((n,{a,b})=>n+Math.hypot(b.x-a.x,b.z-a.z),0);
  const allowed=distance<=6*elapsed+1&&segments.every(({a,b})=>{const samples=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/.25));return Array.from({length:samples},(_,i)=>{const t=(i+1)/samples;return !blocked(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t)}).every(Boolean)});

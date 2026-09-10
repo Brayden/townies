@@ -1,3 +1,4 @@
+import {TOWN_FARM,farmIsOpen} from './townFarm.ts';
 import {HOME_LOTS,ROADS,COMMUNITY_PARK,WINDMILL,entrance,isTownBlocked} from './townLayout.ts';
 import {GARDEN_AREAS} from './gardenAreas.ts';
 import {WORK_TARGETS,STATIONS} from './workTargets.ts';
@@ -11,7 +12,7 @@ export function placementShape(s:PlanningState,p:BuildingChoice){
 export function placementBuilding(s:PlanningState,p:BuildingChoice,v:Placement):WorldBuilding{const n=placementShape(s,p);return {id:p.institution??'preview',...n,...v,...oriented(n.width,n.depth,v.rotation),modelWidth:n.width,modelDepth:n.depth,action:'town'};}
 type Rect={x:number;z:number;width:number;depth:number};
 export const overlaps=(a:Rect,b:Rect,pad=0)=>Math.abs(a.x-b.x)<(a.width+b.width)/2+pad&&Math.abs(a.z-b.z)<(a.depth+b.depth)/2+pad;
-export function protectedLand(s:PlanningState){return [
+export function protectedLand(s:PlanningState){return [...(farmIsOpen(s)?[{...TOWN_FARM,name:'The shared town farm'}]:[]),
  ...HOME_LOTS.map(h=>({...h,z:h.z+.4,width:8,depth:8.4,name:'A resident’s home and garden'})),
  ...[...ROADS,...expansionRoads(s)].map(r=>({...r,name:'A public street'})),
  {...COMMUNITY_PARK,name:'Community Park'},...GARDEN_AREAS.map(a=>({...a,name:'A shared garden'})),
