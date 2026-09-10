@@ -17,14 +17,12 @@ a.primary-button{text-decoration:none}.modal [data-slot=dialog-title]{font-famil
 @media(max-width:700px){.day-chip{gap:6px;padding:9px 8px}.day-chip strong{max-width:68px}}@media(max-width:380px){.day-chip{display:none}}
 
 .shift-start{left:24px;top:100px}.shift-start button{font-size:13px;box-shadow:0 3px 12px #34432d22}
-.shift-card{left:50%;bottom:118px;transform:translateX(-50%);padding:14px 16px;display:flex;align-items:center;gap:10px;max-width:650px;width:max-content;pointer-events:auto}.shift-card strong{display:flex;gap:6px;align-items:center;font-size:15px}.shift-card span,.shift-card small{display:block;margin-top:4px;font-size:13px}.shift-card small{font-size:11px;color:#6b725d}.shift-card button{white-space:nowrap;font-size:13px}.shift-card .secondary-button{min-height:44px}
-@media(max-width:700px){.shift-start{top:110px;left:14px;right:14px}.shift-start button{font-size:12px;padding:10px 13px;min-height:44px}.shift-card{top:110px;bottom:auto;left:12px;right:12px;transform:none;width:auto;padding:12px;flex-wrap:wrap;gap:8px}.shift-card>div{width:100%}.shift-card button{flex:1;min-height:44px}.status-banner{top:78px;z-index:25}.shift-card small{max-width:300px}}
+@media(max-width:700px){.shift-start{top:110px;left:14px;right:14px}.shift-start button{font-size:12px;padding:10px 13px;min-height:44px}.status-banner{top:78px;z-index:25}}
 
 .career-job{border:1px solid #c4d19c;background:#edf2d9;border-radius:14px;padding:15px;margin:14px 0 22px}.career-job h3{font:700 23px Georgia,serif;margin:8px 0}.career-job .primary-button{margin-top:13px}.career-job p{font-size:13px}
 
 .camera-panel{right:26px;bottom:86px;width:260px;padding:14px;z-index:12;pointer-events:auto}.camera-panel .button-row{margin:10px 0}.camera-panel .secondary-button{font-size:12px;padding:8px;min-height:44px}.camera-panel [aria-pressed=true]{background:#d9e4bd;border-color:#758c58}.camera-panel p{font-size:11px;line-height:1.5;color:#6a735c;margin:8px 0 0}.camera-adjust{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}.camera-adjust button:nth-child(4){grid-row:2;grid-column:1/2}.camera-adjust button:nth-child(5){grid-row:2;grid-column:2/3}.invite-card{background:#edf2d9;border:1px solid #cfdbb8;border-radius:14px;padding:16px;margin:18px 0}.invite-card .button-row{flex-wrap:wrap}.invite-card input{font-family:monospace;letter-spacing:1px}.invite-card .secondary-button{font-size:13px;padding:10px}.camera-panel .icon-button{pointer-events:auto}@media(max-width:700px){.camera-panel{right:62px;bottom:100px;width:min(260px,calc(100vw - 78px));max-height:calc(100dvh - 180px);overflow:auto}.camera-buttons .icon-button{width:40px;height:40px}}
 
-.field-shift{bottom:210px;max-width:590px}.field-shift>div:first-child{max-width:340px}.field-shift-actions{display:flex;flex-wrap:wrap;gap:6px}.field-shift .progress{margin-top:8px}@media(max-width:700px){.field-shift{top:110px;bottom:auto}.field-shift-actions{width:100%}.field-shift .secondary-button{font-size:12px;padding:8px}.field-shift>div:first-child{max-width:none}}
 
 .town-minimap{position:absolute;z-index:8;bottom:102px;right:24px;width:220px;pointer-events:auto}.minimap-content{overflow:hidden;padding:8px;border-radius:16px}.minimap-heading{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 7px;gap:8px;font-size:14px}.minimap-heading strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.minimap-heading>span{white-space:nowrap;color:#647151}.town-minimap-map{display:block;width:100%;aspect-ratio:1;border-radius:9px;background:#afc487}.minimap-status{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;padding:7px 0 0;font-size:12px;color:#676d72}.minimap-status>span{display:flex;align-items:center;gap:3px}.minimap-status .delivered{color:#257440}.minimap-status strong{display:block;width:100%;font-size:13px;color:#34432d;text-align:center}.minimap-zoom{display:flex;gap:5px;margin-top:7px}.minimap-zoom .secondary-button{padding:8px;min-width:44px;min-height:44px}.minimap-zoom .minimap-fit{flex:1;font-size:12px;white-space:nowrap}.minimap-mobile-toggle{display:none}
 @media(max-width:1050px){.town-minimap{right:18px;width:190px}}
@@ -34,3 +32,22 @@ a.primary-button{text-decoration:none}.modal [data-slot=dialog-title]{font-famil
 .town-directory{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}.town-directory h3{grid-column:1/-1;margin:0 0 5px;font:700 21px Georgia,serif}.town-directory button{font-size:13px;justify-content:flex-start}.outfit-swatch{width:48px;height:48px;border-radius:50%;border:3px solid #fff3d1;box-shadow:0 0 0 1px #c8bd9b}.outfit-item p{min-height:0}.town-minimap-map [role=button]:focus{outline:1px solid #fffbe4}
 
 .minimap-look-hint{font-size:12px;line-height:1.35;color:#637151;margin:6px 0 0;text-align:center}
+
+/* Navigation and active shifts share one footprint; neither grows into the play controls. */
+.game{--dock-height:81px;--dock-width:436px}
+.bottom-dock{height:var(--dock-height);width:min(var(--dock-width),calc(100% - 24px));align-items:stretch}
+.bottom-dock>.dock-button{flex:1;min-width:0;justify-content:center;padding:8px 6px}
+.job-dock{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,60px);gap:4px}
+.job-dock.mowing-dock{grid-template-columns:minmax(0,1fr) 72px}
+.job-dock-summary{display:flex;min-width:0;flex-direction:column;justify-content:center;padding:0 7px;gap:3px;line-height:1.15}
+.job-dock-summary strong{display:flex;align-items:center;gap:6px;min-width:0;font-size:13px}
+.job-dock-summary strong svg{width:17px;height:17px;flex-shrink:0;color:#617d4c}
+.job-dock-summary strong span,.job-dock-earnings,.job-dock-supplies{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.job-dock-earnings{font-size:12px;font-variant-numeric:tabular-nums}
+.job-dock-supplies,.job-dock-watering{font-size:11px;color:#6b725d}
+.job-dock-watering .progress{margin-top:3px}
+.job-dock-watering .progress [data-slot=progress-track]{height:3px}
+.job-dock-finish{background:#e7ecd4;color:#45663e}
+@media(max-width:1450px){.help-chip{display:none}}
+@media(min-width:701px) and (max-width:1050px){.camera-buttons{bottom:110px;flex-direction:column}.camera-panel{right:76px;bottom:110px}.town-minimap{right:76px;bottom:110px}}
+@media(max-width:700px){.game{--dock-height:70px;--dock-width:360px}.job-dock{grid-template-columns:minmax(0,1fr) repeat(3,47px);gap:2px}.job-dock.mowing-dock{grid-template-columns:minmax(0,1fr) 60px}.job-dock-summary{padding:0 4px;gap:2px}.job-dock-summary strong{font-size:11px;gap:4px}.job-dock-summary strong svg{width:14px;height:14px}.job-dock-earnings{font-size:11px}.job-dock-supplies,.job-dock-watering{font-size:10px}.bottom-dock>.dock-button{padding:6px 2px;font-size:10px}}
