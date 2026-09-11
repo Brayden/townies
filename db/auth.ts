@@ -1,6 +1,8 @@
 import {townContext} from './context';
 import {env} from 'cloudflare:workers';
 import {betterAuth} from 'better-auth/minimal';
+import {APIError} from 'better-auth/api';
+import {hasProfanity,NAME_LANGUAGE_ERROR} from '../server/profanity';
 import {drizzleAdapter} from '@better-auth/drizzle-adapter';
 import {drizzle} from 'drizzle-orm/d1';
 import * as schema from './auth-schema';
@@ -11,6 +13,7 @@ export function accounts(){
  return betterAuth({
   appName:'Townies',baseURL:env.BETTER_AUTH_URL,secret:env.BETTER_AUTH_SECRET,
   database:drizzleAdapter(drizzle(env.DB,{schema}),{provider:'sqlite',schema,transaction:false}),
+  databaseHooks:{user:{create:{before:async user=>{if(hasProfanity(user.name))throw new APIError('BAD_REQUEST',{message:NAME_LANGUAGE_ERROR})}},update:{before:async user=>{if(typeof user.name==='string'&&hasProfanity(user.name))throw new APIError('BAD_REQUEST',{message:NAME_LANGUAGE_ERROR})}}}},
   emailAndPassword:{enabled:true,minPasswordLength:12,maxPasswordLength:128,autoSignIn:true},
   session:{expiresIn:60*60*24*30,updateAge:60*60*24},
   advanced:{cookiePrefix:'townies',ipAddress:{ipAddressHeaders:['cf-connecting-ip']}},

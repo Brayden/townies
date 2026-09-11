@@ -14,7 +14,7 @@ const insert=database.prepare('INSERT INTO chat_messages VALUES(?,?,?,?,?,?)');
 const message=(id,channel,created,author='neighbor',town='town-a')=>insert.run(id,town,author,channel,'Hello',created);
 message('old-message-00001','town',50);message('same-time-0000002','town',100);message('own-message-0001','town',110,'self');message('profession-00001','mow',100);message('other-job-000001','garden',100);message('other-town-00001','town',100,'outsider','town-b');
 const result=await build({entryPoints:['server/chat.ts'],bundle:true,platform:'node',format:'esm',write:false,plugins:[{name:'isolated-chat-db',setup(build){build.onResolve({filter:/^@\/db\/(raw|auth)$/},args=>({path:args.path,namespace:'chat-test'}));build.onLoad({filter:/.*/,namespace:'chat-test'},args=>({contents:args.path.endsWith('/raw')?'export const db=()=>globalThis.chatTestDb':'export const gameIdentity=async()=>globalThis.chatTestIdentity',loader:'js'}))}}]});
-const {GET}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+const {GET,POST}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
 async function get(channel='town',cursor=chatRead(null),town='town-a'){
  const params=new URLSearchParams({town,channel,summary:'1',after:String(cursor.created),seen:cursor.ids.join(',')});const response=await GET(new Request('https://townies.test/api/chat?'+params));return {status:response.status,...await response.json()};
 }
@@ -29,6 +29,12 @@ assert.equal((await get('town',cursor)).unread,1,'A later arrival in the same mi
 const read=mergeChatRead(cursor,readMessages([{id:'same-time-0000001',created:100}]));assert.equal((await get('town',read)).unread,0);
 assert.deepEqual(mergeChatRead(read,chatRead(null)),read,'Older tabs cannot rewind read progress');
 assert.deepEqual(chatRead({created:Infinity,ids:['bad sql','same-time-0000001']}),{created:0,ids:['same-time-0000001']});
+// Moderation is enforced by the shared HTTP/WebSocket handler before a write.
+for(const channel of ['town','mow']){
+ const response=await POST(new Request('https://townies.test/api/chat',{method:'POST',headers:{origin:'https://townies.test','content-type':'application/json'},body:JSON.stringify({id:'blocked-message-'+channel,channel,text:'f.u.c.k',townId:'town-a'})}));
+ assert.equal(response.status,400);assert.match((await response.json()).error,/without profanity/);
+}
+assert.equal(database.prepare("SELECT COUNT(*) AS n FROM chat_messages WHERE id LIKE 'blocked-message-%'").get().n,0);
 globalThis.chatTestIdentity=null;assert.equal((await get()).status,401);
 database.close();delete globalThis.chatTestDb;delete globalThis.chatTestIdentity;
 console.log('PASS: unread counts, own-message exclusion, channel/town/account authorization, same-time arrivals, and monotonic read cursors.');

@@ -1,3 +1,4 @@
+import {hasProfanity,NAME_LANGUAGE_ERROR,TOWN_LANGUAGE_ERROR} from '../profanity';
 import {DurableObject} from 'cloudflare:workers';
 import {hash,type Call} from './Town';
 import {HOMES,COLORS} from '../../app/game/data';
@@ -38,7 +39,7 @@ export class ResidentCoordinator extends DurableObject<Cloudflare.Env>{
  private async join(identity:string,b:Record<string,any>){
   const pending=this.ctx.storage.kv.get<{town:string;row?:Record<string,any>}>('joining');
   let town=pending?.town;
-  const name=String(b.name??'').trim().slice(0,24);if(name.length<2)throw new Error('Please enter a name with at least two letters.');
+  const name=String(b.name??'').trim().slice(0,24);if(name.length<2)throw new Error('Please enter a name with at least two letters.');if(hasProfanity(name))throw new Error(NAME_LANGUAGE_ERROR);if(b.mode==='private'&&hasProfanity(String(b.townName||`${name}’s Hollow`).trim().slice(0,32)))throw new Error(TOWN_LANGUAGE_ERROR);
   if(!town){if(b.mode==='private'){
    town=crypto.randomUUID();await this.env.DB.prepare('INSERT INTO towns(id,name,invite,private,created) VALUES(?,?,?,?,?)').bind(town,String(b.townName||`${name}’s Hollow`).trim().slice(0,32),crypto.randomUUID().replaceAll('-','').slice(0,16).toUpperCase(),1,Date.now()).run();
   }else if(b.mode==='key'){
