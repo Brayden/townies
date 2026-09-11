@@ -12,7 +12,7 @@ export function maintenanceScenery(scene:THREE.Scene,blocked:(x:number,z:number)
  };
  make('paving','wash',1,new THREE.BoxGeometry(1,1,1),'#d1cab3');
  make('grime','wash',12,new THREE.BoxGeometry(1,1,1),'#bcb69f');
- make('road','sweep',7,new THREE.IcosahedronGeometry(1,0),'#bba37c');
+ make('road','sweep',4,new THREE.IcosahedronGeometry(1,0),'#c2aa84');
  make('hedge','trim',1,new THREE.BoxGeometry(1,1,1),'#63854a');
  make('growth','trim',7,new THREE.IcosahedronGeometry(1,1),'#8aab5b');
  make('leaves','rake',14,new THREE.SphereGeometry(1,4,2),'#c28a40');
@@ -42,7 +42,8 @@ export function maintenanceScenery(scene:THREE.Scene,blocked:(x:number,z:number)
      if(j/batch.pieces<progress)dummy.scale.setScalar(0);
     }
     if(batch.kind==='road'){
-     dummy.position.set(t.x+Math.sin(a)*t.width*.4,.22,t.z+Math.cos(a*1.7)*t.depth*.4);dummy.rotation.y=a;dummy.scale.set(.1+(j%3)*.05,.025,.07+(j%2)*.06);if(done)dummy.scale.setScalar(0);
+     const scatter=a+t.z*.73;
+     dummy.position.set(t.x+Math.sin(scatter)*t.width*.4,.22,t.z+Math.cos(scatter*1.7)*t.depth*.4);dummy.rotation.y=scatter;dummy.scale.set(.1+(j%3)*.05,.025,.07+(j%2)*.06);if(done)dummy.scale.setScalar(0);
     }
     if(batch.kind==='hedge'){dummy.position.y=.57;dummy.scale.set(t.width,.92,t.depth);}
     if(batch.kind==='growth'){

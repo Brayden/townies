@@ -38,7 +38,7 @@ art.update([],[{shift:'wash',wateringTarget:washTarget.id,wateringStarted:now-10
 assert.notDeepEqual(versions(),stable,'Starting work updates immediately');
 const workingVersion=versions();art.update([],[],now+2);assert.notDeepEqual(versions(),workingVersion,'Cancelling work resets partial art immediately');
 
-const jobs={wash:{mesh:meshes[1],pieces:12},sweep:{mesh:meshes[2],pieces:7},trim:{mesh:meshes[4],pieces:7},rake:{mesh:meshes[5],pieces:14}};
+const jobs={wash:{mesh:meshes[1],pieces:12},sweep:{mesh:meshes[2],pieces:4},trim:{mesh:meshes[4],pieces:7},rake:{mesh:meshes[5],pieces:14}};
 for(const [job,{mesh,pieces}]of Object.entries(jobs)){
  const target=MAINTENANCE_TARGETS.find(t=>t.job===job);assert.equal(visible(mesh,0,pieces),pieces);
  if(job==='wash'){now+=400;art.update([],[{shift:job,wateringTarget:target.id,wateringStarted:now-workDuration(job)*.5}],now);assert.ok(visible(mesh,0,pieces)>0&&visible(mesh,0,pieces)<pieces,'Spray reveals individual clean strips before completion');}
