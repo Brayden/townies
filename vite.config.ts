@@ -8,7 +8,7 @@ const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   '00000000-0000-4000-8000-000000000000';
 
 const { d1, r2 } = hostingConfig;
-const standalone = process.env.TOWNIES_DEPLOY_TARGET === 'cloudflare';
+const standalone = process.env.TOWNIES_DEPLOY_TARGET !== 'sites';
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';

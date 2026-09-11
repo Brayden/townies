@@ -1,3 +1,4 @@
+// Game fixtures use town SQLite migrations; 0016+ are shared-directory migrations.
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync} from 'node:fs';
@@ -14,7 +15,7 @@ for(let day=0;day<10;day++){const route=parcelHomes('a',now+day*DAY_MS);assert.e
 assert.equal(grassHeight(now,now+DAY_MS-1,now),0);assert.ok(grassHeight(now,now+DAY_MS,now)>0);assert.ok(grassHeight(now,now+3*DAY_MS,now)>grassHeight(now,now+2*DAY_MS,now));assert.equal(grassHeight(now,now+100*DAY_MS,now),2.4);assert.ok(grassHeight(undefined,now,now)>0);
 assert.equal(capacity('clean',['cleanup-bag']),16);assert.equal(capacity('garden',[]),8);assert.ok(OUTFITS.some(o=>o.shape==='dress'));assert.ok(OUTFITS.some(o=>o.shape==='top'));assert.equal(new Set(OUTFITS.map(o=>o.id)).size,OUTFITS.length);
 for(const job of ['deliver','clean'])for(const reduced of [false,true]){let before;for(let t=0;t<=FIELD_DURATION[job]+50;t+=5){const pose=fieldPose(job,t,{x:3,z:4},{x:4,z:5},reduced);assert.ok(Object.values(pose).every(v=>typeof v==='boolean'||Number.isFinite(v)));if(before)assert.ok(Math.hypot(pose.x-before.x,pose.y-before.y,pose.z-before.z)<.08);before=pose;}assert.ok(before.done);if(job==='deliver'){assert.equal(before.x,4);assert.equal(before.z,5);assert.equal(before.y,.655)}else assert.equal(before.scale,0);}
-const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())sqlite.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
+const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')&&Number(f.slice(0,4))<=15).sort())sqlite.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
 const d={prepare(sql){const stmt=sqlite.prepare(sql);let args=[];return{bind(...a){args=a;return this},async first(){return stmt.get(...args)??null},async all(){return{results:stmt.all(...args)}},async run(){return{meta:{changes:Number(stmt.run(...args).changes)}}}}}};
 sqlite.exec("INSERT INTO towns(id,name,created) VALUES('town','Town',0); INSERT INTO residents(id,token_hash,town_id,name,color,home,job,coins,seen,created) VALUES('a','a','town','A','#fff',0,'paper',30000,0,0),('b','b','town','B','#fff',1,'paper',10000,0,0)");
 const row=(id='a')=>sqlite.prepare('SELECT * FROM residents WHERE id=?').get(id),act=(b,r=row())=>lifestyleAction(d,r,b,now);

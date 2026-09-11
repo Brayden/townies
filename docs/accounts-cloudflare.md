@@ -2,6 +2,8 @@
 
 The standalone beta uses email/password accounts before loading the game. Account creation signs the player in, then offers town creation or joining. Returning players resume their resident, home, and job. Settings includes logout. Town invitation hashes survive signup and login.
 
+World storage now runs in per-town Durable Objects. See [Durable towns](durable-towns.md) before changing database migrations or rolling back deployments.
+
 ## Deployment boundary
 
 - Worker: `townies-beta`

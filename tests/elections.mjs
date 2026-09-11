@@ -1,3 +1,4 @@
+// Game fixtures use town SQLite migrations; 0016+ are shared-directory migrations.
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync} from 'node:fs';
@@ -10,7 +11,7 @@ for(const [date,active,cycle,closed] of [
 }
 assert.equal(electionWindow(at('2026-09-20T23:59:59')).daysUntil,1);
 const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');
-for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())sqlite.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
+for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')&&Number(f.slice(0,4))<=15).sort())sqlite.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
 const d={prepare(sql){
  const stmt=sqlite.prepare(sql);let args=[];
  return {

@@ -1,3 +1,4 @@
+import {townContext} from './context';
 import {env} from 'cloudflare:workers';
 import {betterAuth} from 'better-auth/minimal';
 import {drizzleAdapter} from '@better-auth/drizzle-adapter';
@@ -18,6 +19,7 @@ export function accounts(){
 }
 // Never trust dispatcher headers on the standalone Worker. Email is not a resident key.
 export async function gameIdentity(req:Request):Promise<string|null>{
+ const local=townContext.getStore();if(local)return local.identity;
  if(usesSitesIdentity())return req.headers.get('oai-authenticated-user-id');
  const session=await accounts().api.getSession({headers:req.headers});
  return session?`account:${session.user.id}`:null;

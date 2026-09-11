@@ -1,9 +1,10 @@
+import {townContext} from './context.ts';
 import {HOUSES,houseById,houseCost,nextMonth,settleUpkeep} from '../app/game/lifestyle.ts';
 import {HOMES} from '../app/game/data.ts';
 import {OUTFITS} from '../app/game/outfits.ts';
 type Citizen={id:string;town_id:string;home:number|null;job:string|null;house:string;coins:number;upkeep_due:number;items:string};
 export async function maintainHomes(d:D1Database,town:string,now:number){
- const rows=await d.prepare('SELECT id,house,coins,upkeep_due FROM residents WHERE town_id=? AND upkeep_due>0 AND upkeep_due<=?').bind(town,now).all<Citizen>();
+ const rows=await d.prepare('SELECT id,house,coins,upkeep_due FROM residents WHERE town_id=? AND upkeep_due>0 AND upkeep_due<=?'+(townContext.getStore()?" AND NOT EXISTS(SELECT 1 FROM _transfers WHERE resident=residents.id AND status='prepared')":'')).bind(town,now).all<Citizen>();
  for(const r of rows.results){const v=settleUpkeep(r.house,r.coins,r.upkeep_due,now);await d.prepare('UPDATE residents SET house=?,coins=?,upkeep_due=?,upkeep_note=? WHERE id=? AND upkeep_due=? AND coins=? AND house=?').bind(v.house,v.coins,v.due,v.levels?`Maintenance missed: your home stepped down ${v.levels} level${v.levels===1?'':'s'}. ${v.paid} coins paid for other months.`:`Monthly maintenance paid: ${v.paid} coins.`,r.id,r.upkeep_due,r.coins,r.house).run();}
 }
 export async function lifestyleAction(d:D1Database,r:Citizen,b:Record<string,any>,now:number){

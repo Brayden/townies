@@ -1,8 +1,9 @@
+// Game fixtures use town SQLite migrations; 0016+ are shared-directory migrations.
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync} from 'node:fs';
 import {claimMovement,movementOwner,presenceOnly} from '../db/movementControl.ts';
-const sql=new DatabaseSync(':memory:');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())sql.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
+const sql=new DatabaseSync(':memory:');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')&&Number(f.slice(0,4))<=15).sort())sql.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
 const d={prepare(query){const stmt=sql.prepare(query);let args=[];return{bind(...a){args=a;return this},async run(){return{meta:{changes:Number(stmt.run(...args).changes)}}}}}};
 sql.exec("INSERT INTO towns(id,name,created) VALUES('town','Town',0);INSERT INTO residents(id,token_hash,town_id,name,color,seen,created) VALUES('a','a','town','Alice','#fff',1000,0)");
 const row=()=>sql.prepare("SELECT * FROM residents WHERE id='a'").get(),desktop='desktop-0000000001',mobile='mobile-00000000001';

@@ -1,7 +1,4 @@
-import {gameIdentity} from '@/db/auth';
-import {db} from '@/db/raw';
-import {socialState,socialAction,messages,type SocialResident} from '@/db/social';
-const json=(b:unknown,status=200)=>Response.json(b,{status,headers:{'Cache-Control':'no-store'}});
-async function citizen(req:Request){const account=await gameIdentity(req);if(!account)return null;const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(account))),b=>b.toString(16).padStart(2,'0')).join('');return db().prepare('SELECT * FROM residents WHERE token_hash=?').bind(hash).first<SocialResident>();}
-export async function GET(req:Request){try{const r=await citizen(req);if(!r||r.home===null)return json({error:'Join a town first.'},401);const to=new URL(req.url).searchParams.get('to');const result=to?await messages(db(),r,to):await socialState(db(),r);return json(result,'status'in result?result.status:200);}catch{return json({error:'Your neighbors are reconnecting. Try again.'},503);}}
-export async function POST(req:Request){try{const origin=req.headers.get('origin');if(origin&&new URL(origin).host!==new URL(req.url).host)return json({error:'Use your game page.'},403);const r=await citizen(req);if(!r||r.home===null)return json({error:'Join a town first.'},401);const b=await req.json() as any;if(b.town!==r.town_id)return json({error:'Your town changed. Reopen neighbors.'},409);const error=await socialAction(db(),r,b);return error?json(error,error.status):json({saved:true});}catch{return json({error:'That could not be saved. Please try again.'},503);}}
+import {townRoute} from '@/server/towns/router';
+import * as legacy from '@/server/social';
+export async function GET(req:Request){return await townRoute(req)??legacy.GET(req)}
+export async function POST(req:Request){return await townRoute(req)??legacy.POST(req)}

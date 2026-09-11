@@ -1,3 +1,4 @@
+// Game fixtures use town SQLite migrations; 0016+ are shared-directory migrations.
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync} from 'node:fs';
@@ -11,7 +12,7 @@ import {EMPTY_PLANNING,townBuildings} from '../app/game/charters.ts';
 import {initialPlacement,placementError,placementBuilding} from '../app/game/placement.ts';
 import {HOMES} from '../app/game/data.ts';
 import {ROADS,entrance} from '../app/game/townLayout.ts';
-const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort())sql.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
+const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')&&Number(f.slice(0,4))<=15).sort())sql.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
 const d={prepare(query){const stmt=sql.prepare(query);let args=[];return{bind(...a){args=a;return this},async first(){return stmt.get(...args)??null},async all(){return{results:stmt.all(...args)}},execute(){return{meta:{changes:Number(stmt.run(...args).changes)}}},async run(){return this.execute()}}},async batch(statements){sql.exec('BEGIN');try{const results=statements.map(s=>s.execute());sql.exec('COMMIT');return results}catch(e){sql.exec('ROLLBACK');throw e}}};
 
 const now=Date.parse('2026-09-10T12:00:00Z');sql.exec("INSERT INTO towns(id,name,created) VALUES('town','Town',0),('other','Other',0);INSERT INTO residents(id,token_hash,town_id,name,color,home,job,coins,seen,created) VALUES('a','a','town','A','#fff',0,'mow',10000,0,0),('b','b','other','B','#fff',0,'paper',10000,0,0)");

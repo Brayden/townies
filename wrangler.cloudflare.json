@@ -2,12 +2,48 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "townies-beta",
   "account_id": "448b660e519f2aa8f8fbcb5cb6ff98af",
-  "main": "vinext/server/fetch-handler",
+  "main": "worker.ts",
   "compatibility_date": "2026-05-15",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "workers_dev": true,
   "preview_urls": false,
-  "observability": {"enabled": true},
-  "vars": {"TOWNIES_AUTH_MODE": "account", "BETTER_AUTH_URL": "https://townies-beta.brayden-wilmoth.workers.dev"},
-  "d1_databases": [{"binding":"DB","database_name":"townies-beta-db","database_id":"66912689-29bd-41dd-b15d-9f97abdbe236","migrations_dir":"drizzle"}]
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "TOWNIES_AUTH_MODE": "account",
+    "BETTER_AUTH_URL": "https://townies-beta.brayden-wilmoth.workers.dev",
+    "TOWNIES_MAINTENANCE": "false"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "townies-beta-db",
+      "database_id": "66912689-29bd-41dd-b15d-9f97abdbe236",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "TOWNS",
+        "class_name": "Town"
+      },
+      {
+        "name": "RESIDENTS",
+        "class_name": "ResidentCoordinator"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "town-objects-v1",
+      "new_sqlite_classes": [
+        "Town",
+        "ResidentCoordinator"
+      ]
+    }
+  ]
 }
