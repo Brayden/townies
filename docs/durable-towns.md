@@ -10,7 +10,21 @@ D1 retains accounts/authentication, town discovery/invite codes, resident direct
 
 A server-signed HttpOnly routing cookie binds account identity, the existing auth-session cookie hash, and an expiry of at most one day. Initial establishment/renewal verifies Better Auth's D1 session. Ordinary game requests verify the signature and consult the resident object's persistent session grant without a D1 session or membership lookup. Logout revokes that grant before revoking Better Auth's session, including for previously copied routing cookies. Account session-management endpoints also invalidate grants. Browser-supplied dispatcher headers are never accepted on the standalone host. Missing object bindings fail closed rather than silently resuming D1 gameplay writes.
 
-The transport remains HTTP polling in this change. WebSocket broadcasts, delta snapshots, and production-scale load tests remain separate work. Per-town storage removes the shared gameplay database bottleneck; it does not itself prove a particular player-count, latency, or cost target.
+## Live connections
+
+After an authenticated HTTP bootstrap, `/api/town-socket` upgrades directly into the resident's current town object. The Worker validates the same-origin request and signed routing cookie; the account coordinator verifies its persistent session grant and current membership. Only the Worker supplies the internal grant header. The town independently checks the resident, membership epoch, session expiry, revocation, and transfer freeze before accepting a socket.
+
+The town uses Cloudflare's WebSocket Hibernation API, with identity/session metadata and request sequences in socket attachments. Game actions and town/profession chat use request/response envelopes on the socket and execute the existing authoritative rules in the town's serialized queue. Accounts, directory operations, moves, and global friendships/DMs retain their HTTP routing. No D1 lookup is required for each movement message.
+
+Movement sends at most four times per second while moving, with a two-second idle heartbeat. The town broadcasts compact shared-state patches immediately after changes. Full snapshots establish the connection and recover after object eviction; versioned personal deltas carry only the requesting resident's balances, movement ownership, election choices, and permitted interior. Other devices of that same account receive personal updates immediately. Indoor peer positions go only to residents in that room. The client coalesces render notifications at 50 milliseconds and keeps movement interpolation and optimistic mowing acknowledgments.
+
+Chat and social changes emit notifications, including recipient notifications for cross-town DMs. Open panels fetch new messages immediately and queue a refresh if another notification arrives during a fetch. Neighbors retains a 30-second directory refresh for cross-town presence; its previous five-second refresh is used when disconnected. Town chat and DM polling otherwise serve as a disconnected fallback.
+
+Connections recover with backoff and a fresh snapshot. Hidden tabs close their socket and reconnect on return. Expired routing grants renew through bootstrap; explicit logout revokes and closes active sockets. Town transfers freeze and close old-town sockets before committing membership. Pending mutations are never automatically replayed after an uncertain disconnection. Existing HTTP clients remain compatible, and the new client falls back to HTTP while reconnecting.
+
+The protocol caps frames at 32 KiB, accepts text only, enforces 24 incoming messages per second (including replays), and rejects reused request IDs. There are at most four connections per resident and 220 per town. Acknowledgments/pings detect stalled clients; unresponsive connections are closed for resynchronization. Private snapshots never enter the town-wide delta stream.
+
+These changes do not prove a particular 50-player latency or cost target. Sustained multi-town load testing, bandwidth/CPU profiling, and mobile rendering measurement remain beta-readiness work.
 
 ## Migration
 
@@ -34,6 +48,8 @@ Every stage is idempotent. A subsequent request resumes a pending transfer; ambi
 
 ## Validation
 
+- `tests/town-wire.mjs`: compact peer/grass patches, array edits, immutable application, and unsafe-path rejection.
+- `tests/town-websockets.mjs`: real upgrades in the built Worker, authentication/origin rejection, town isolation, movement and mowing broadcasts, private-state separation, device takeover, chat/DM notifications, duplicate requests, frame/rate limits, transfers, logout, and the actual client transport’s reconnect/bootstrap lifecycle.
 - `tests/accounts-api.mjs`: signup/login, cookie gates, private invitations, ownership, forged headers, cross-origin protection, logout/revocation, persistence.
 - `tests/town-objects.mjs`: separate town databases, simultaneous home claims, D1 no longer authoritative for world balances, shared mowing rewards, 24-hour grass timing, device takeover, failed destination reservation, deliberately interrupted transfer, simultaneous opposite transfers, stale packets, friends/DMs, capacity of 50, overlapping requests, and revoked session replay.
 - `tests/town-migration.mjs`: existing town import with exact balances, home, career, grass timestamps, treasury, historical foreign references, and prevention of repeated imports. It saves a private local fixture for restart verification.
@@ -44,4 +60,9 @@ These tests create only disposable local worlds and refuse remote URLs. Their co
 
 Deployed on September 11, 2026 (UTC), after a maintenance pause and private pre-cutover backup. D1 migration 0017 completed successfully. Live checks created two isolated private towns and verified home setup, a cross-town transfer, shared destination membership, and returning login. Their accounts and directory records were removed afterward; dormant test object storage is not listed as a playable town and is retained until a future administrative storage cleanup. No existing player or town was deleted. The private local backup is in the ignored `outputs/backups` directory with restricted file permissions.
 
-This release uses the existing polling transport. Next scaling validation should measure 50 simultaneous players per town across multiple towns, then prioritize delta updates/WebSockets and the remaining shared social reads based on measurements.
+The initial cutover used HTTP polling. The subsequent WebSocket release keeps that path compatible while using sockets for current clients. For local socket verification, build with `npm run build:cloudflare`, then run `npx wrangler dev --config dist/server/wrangler.json --port 3002 --persist-to .wrangler/state`. Vite's development upgrade handling does not exercise the custom production Worker path; its HTTP fallback remains usable. Use Node 24 for the local integration fixtures (`node:sqlite` and TypeScript stripping); the socket harness uses `ws` and `esbuild` supplied by the pinned Wrangler toolchain.
+
+
+## WebSocket release verification
+
+Cloudflare version `da3f9d64-8ef9-4de3-ba3e-520a73cf1d64` passed live verification on September 11, 2026 (UTC): two authenticated clients in an isolated private QA town exchanged movement and chat, received separate private state, reconnected to saved progress, and disconnected when their sessions were revoked. One observed movement round trip was 105 ms; this is a single smoke-test observation, not a latency guarantee or load-test result. Local validation also passed type checking, the production build, patch tests, the real socket/client harness, and the existing account and durable-town regression suites. The temporary QA directory records and accounts are removed after verification; their unlisted object storage follows the same retention caveat as the initial cutover fixtures.

@@ -27,3 +27,14 @@ export async function townRoute(req:Request):Promise<Response|null>{
  }catch(error){console.error('Town routing failed',error);return json({error:'Your town is reconnecting. Please try again.'},503)}
 }
 export async function revokeTownSession(req:Request,all=false){if(!env.RESIDENTS)return;const session=await accounts().api.getSession({headers:req.headers});if(!session)return;const resident=env.RESIDENTS.getByName(await hash(`account:${session.user.id}`));if(all)await resident.revokeAll();else await resident.revoke(await hash(sessionCookie(req)));}
+
+export async function townSocket(req:Request):Promise<Response>{
+ if(!env.TOWNS||!env.RESIDENTS||env.TOWNIES_MAINTENANCE==='true')return json({error:'Town connections are unavailable.'},503);
+ if(req.headers.get('upgrade')?.toLowerCase()!=='websocket')return json({error:'WebSocket connection required.'},426);
+ if(req.headers.get('origin')!==new URL(req.url).origin)return json({error:'Connect from your game page.'},403);
+ const ticket=await read(req);if(!ticket)return json({error:'Refresh your town session first.'},401);
+ try{const grant=await env.RESIDENTS.getByName(await hash(ticket.identity)).socketGrant(ticket.session,ticket.identity,req.url);if(!grant)return json({error:'Join a town and log in first.'},401);
+  const headers=new Headers({Upgrade:'websocket','X-Townies-Grant':JSON.stringify(grant)});
+  return env.TOWNS.getByName(grant.town).fetch(new Request('https://town.internal/socket',{headers}));
+ }catch{ return json({error:'Your town is reconnecting.'},503)}
+}

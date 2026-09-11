@@ -1,6 +1,6 @@
 # Townies
 
-Town simulation now uses one SQLite-backed Durable Object per town, with a per-account coordinator for sessions and recoverable moves. See [Durable towns](docs/durable-towns.md) for the storage boundary, migration, recovery, and tests. The default development/build target is your personal Cloudflare deployment.
+Town simulation now uses one SQLite-backed Durable Object per town, with a per-account coordinator for sessions and recoverable moves. See [Durable towns](docs/durable-towns.md) for the storage boundary, migration, recovery, and tests. The default development/build target is your personal Cloudflare deployment. Players connect directly to their town over authenticated WebSockets; see the linked guide for the transport protocol and local production-runtime tests.
 
 The personal Cloudflare beta now has an account home screen with email/password signup, login, and logout. See [Accounts and Cloudflare deployment](docs/accounts-cloudflare.md) for the separate beta database, local setup, deployment commands, validation, and remaining account-recovery work. The Sites instructions below describe the original host.
 
@@ -32,7 +32,7 @@ Thread & Thistle sells five additional shirt colors, alongside five free starter
 
 ## Deliberate limits
 
-This is a first playable version, not the full long-term design. The other fifteen starter jobs, distinct advanced career gameplay, expanded town stages, home interiors, chat, moderation tooling, and key rotation remain future milestones. Presence uses HTTP polling, not a WebSocket simulation. Fifty-account API concurrency has been exercised; sustained fifty-device rendering and mobile GPU performance have not yet been measured.
+This is a first playable version, not the full long-term design. The other fifteen starter jobs, distinct advanced career gameplay, expanded town stages, home interiors, chat, moderation tooling, and key rotation remain future milestones. Current Cloudflare clients use per-town WebSockets for game actions, movement, shared-state deltas, and chat notifications, with reconnect snapshots and an HTTP fallback. Fifty-account API concurrency has been exercised; sustained fifty-device rendering and mobile GPU performance have not yet been measured.
 
 The published Site is owner-private initially. Its access policy must include friends before invitation keys can let them join a town. Town keys do not bypass Site access or sign-in. Signed-in identity comes only from the trusted Sites dispatcher. The local Vite preview supplies its own single local test identity through the provided sign-in path.
 
