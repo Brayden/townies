@@ -1,3 +1,4 @@
+import {isMaintenance,workDuration,sweptStreet} from '@/app/game/maintenance';
 import {hasProfanity,NAME_LANGUAGE_ERROR,TOWN_LANGUAGE_ERROR} from './profanity';
 import {gameIdentity} from '@/db/auth';
 import {movementOwner,claimMovement,presenceOnly} from '@/db/movementControl';
@@ -73,26 +74,30 @@ else if(b.action==='cancel-water'){
 }
 else if(b.action==='refill'){
  const station=STATIONS.find(s=>s.id===b.station);if(!station||!r.shift||!station.jobs.includes(r.shift)||Math.hypot(r.x-station.x,r.z-station.z)>2)return json({error:'Visit the matching supply or recycling station to refill.'},400);
- const column={paper:'papers',deliver:'parcels',garden:'water',clean:'bag'}[r.shift],amount=r.shift==='clean'?0:capacity(r.shift,JSON.parse(r.items));
+ const column=({paper:'papers',deliver:'parcels',garden:'water',clean:'bag'} as Record<string,string>)[r.shift],amount=r.shift==='clean'?0:capacity(r.shift,JSON.parse(r.items));
  await d.prepare(`UPDATE residents SET ${column}=? WHERE id=? AND shift=?`).bind(amount,r.id,r.shift).run();
 }
 else if(b.action==='water-start'||b.action==='use'){
  const target=TARGET_BY_ID.get(String(b.target));
  if(!target||r.shift!==target.job||r.mowing||Math.hypot(r.x-target.x,r.z-target.z)>2)return json({error:'Start the matching job and get close to that object.'},400);
  if(target.job==='deliver'&&!parcelHomes(r.town_id,now).includes(target.home!))return json({error:'This home has no parcel on today’s route.'},409);
- const field={paper:'papers',deliver:'parcels',garden:'water',clean:'bag'}[target.job];
- if(target.job==='clean'?r.bag>=capacity('clean',JSON.parse(r.items)):r[field as 'papers'|'parcels'|'water']<1)return json({error:target.job==='clean'?'Your bag is full. Empty it at the recycling station.':'You are out of supplies. Visit the supply stand or fountain to refill.'},409);
+ if(target.job==='sweep')return json({error:'Drive the street sweeper over debris to clean it.'},400);
+ const maintenance=isMaintenance(target.job),duration=workDuration(target.job);
+ if(maintenance&&isTownBlocked(target.x,target.z,townLayout(r.planning??await readPlanning(d,r.town_id,r.id,now))))return json({error:'This spot is covered by a town building. Choose another on your map.'},409);
+ if(maintenance&&!movementOwner(r,b))return json({error:'Move on this device first to take control of your tools.'},409);
+ const field=({paper:'papers',deliver:'parcels',garden:'water',clean:'bag'} as Record<string,string>)[target.job];
+ if(!maintenance&&(target.job==='clean'?r.bag>=capacity('clean',JSON.parse(r.items)):r[field as 'papers'|'parcels'|'water']<1))return json({error:target.job==='clean'?'Your bag is full. Empty it at the recycling station.':'You are out of supplies. Visit the supply stand or fountain to refill.'},409);
  if(b.action==='water-start'){
-  if(target.job!=='garden')return json({error:'Choose a flower bed to water.'},400);
-  if(await d.prepare('SELECT key FROM world_work WHERE key=? AND completed>?').bind(`${r.town_id}:${target.group}`,now-WORK_DAY_MS).first())return json({error:'This bed has already been watered today.'},409);
-  if(r.action_target!==target.id||r.action_started<now-15000)await d.prepare("UPDATE residents SET action_target=?,action_started=? WHERE id=? AND shift='garden'").bind(target.id,now,r.id).run();
+  if(!duration)return json({error:'Choose a timed job target.'},400);
+  if(await d.prepare('SELECT key FROM world_work WHERE key=? AND completed>?').bind(`${r.town_id}:${target.group}`,now-WORK_DAY_MS).first())return json({error:'A neighbor already cared for this spot. Choose another on your map.'},409);
+  if(r.action_target!==target.id||r.action_started<now-15000)await d.prepare("UPDATE residents SET action_target=?,action_started=? WHERE id=? AND shift=?").bind(target.id,now,r.id,target.job).run();
  }else{
-  if(target.job==='garden'&&(r.action_target!==target.id||now-r.action_started<2000||now-r.action_started>15000))return json({error:'Keep watering this bed for two seconds to soak the soil.'},400);
+  if(duration&&(r.action_target!==target.id||now-r.action_started<duration||now-r.action_started>15000))return json({error:'Stay beside this spot until your tool finishes.'},400);
   const wage=workPay(WORK_PAY[target.job]-(r.job===target.job?0:1),policy!.tax,policy!.bonus),pay=wage.coins,xp=target.job==='garden'?3:2;
-  const supplyCheck=target.job==='clean'?`bag<${capacity('clean',JSON.parse(r.items))}`:`${field}>0`;
-  const waterCheck=target.job==='garden'?`AND action_target=? AND action_started=?`:'';
-  const claim=d.prepare(`INSERT INTO world_work(key,town_id,object_id,target_id,completed) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM residents WHERE id=? AND shift=? AND mowing=0 AND ${supplyCheck} AND (x-?)*(x-?)+(z-?)*(z-?)<=4 ${waterCheck}) ON CONFLICT(key) DO UPDATE SET target_id=excluded.target_id,completed=excluded.completed WHERE world_work.completed<?`).bind(`${r.town_id}:${target.group}`,r.town_id,target.group,target.id,now,r.id,target.job,target.x,target.x,target.z,target.z,...(target.job==='garden'?[target.id,r.action_started]:[]),target.job==='deliver'?dayStart(now):now-WORK_DAY_MS);
-  const results=await d.batch([claim,d.prepare(`UPDATE residents SET coins=coins+?,xp=xp+?,${field}=${field}${target.job==='clean'?'+1':'-1'},action_target=NULL,action_started=0 WHERE id=? AND changes()=1`).bind(pay,xp,r.id),d.prepare('UPDATE towns SET treasury=treasury+? WHERE id=? AND changes()=1').bind(wage.tax,r.town_id),recordContribution(d,r,now,target.job,xp,wage.tax)]);
+  const supplyCheck=maintenance?'1=1':target.job==='clean'?`bag<${capacity('clean',JSON.parse(r.items))}`:`${field}>0`;
+  const waterCheck=duration?`AND action_target=? AND action_started=?`:'';
+  const claim=d.prepare(`INSERT INTO world_work(key,town_id,object_id,target_id,completed) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM residents WHERE id=? AND shift=? AND mowing=0 AND ${supplyCheck} AND (x-?)*(x-?)+(z-?)*(z-?)<=4 ${waterCheck}) ON CONFLICT(key) DO UPDATE SET target_id=excluded.target_id,completed=excluded.completed WHERE world_work.completed<?`).bind(`${r.town_id}:${target.group}`,r.town_id,target.group,target.id,now,r.id,target.job,target.x,target.x,target.z,target.z,...(duration?[target.id,r.action_started]:[]),target.job==='deliver'?dayStart(now):now-WORK_DAY_MS);
+  const results=await d.batch([claim,d.prepare(`UPDATE residents SET coins=coins+?,xp=xp+?,${maintenance?'':`${field}=${field}${target.job==='clean'?'+1':'-1'},`}action_target=NULL,action_started=0 WHERE id=? AND changes()=1`).bind(pay,xp,r.id),d.prepare('UPDATE towns SET treasury=treasury+? WHERE id=? AND changes()=1').bind(wage.tax,r.town_id),recordContribution(d,r,now,isMaintenance(target.job)?(target.job==='trim'?'garden':'clean'):target.job,xp,wage.tax)]);
   if(!results[0].meta.changes)return json({error:'A neighbor already took care of this one, or you moved away. Try another.'},409);
   r=(await d.prepare('SELECT * FROM residents WHERE id=?').bind(r.id).first<Row>())!;
   return json({...await state(r),workReward:{coins:pay,tax:wage.tax,xp,target:target.id,job:target.job}});
@@ -121,8 +126,18 @@ else if(b.action==='heartbeat'){
    recordContribution(d,r!,now,'mow',1,mowWage.tax)
   ]);const results=await d.batch(statements);cut=results.filter((_,i)=>i%4===0).reduce((n,v)=>n+v.meta.changes,0);}
  }
+ let swept=0;const sweepWage=workPay(r.job==='sweep'?2:1,policy!.tax,policy!.bonus);
+ if(moved&&allowed&&distance>.05&&r.shift==='sweep'&&now-(r.move_updated||r.seen)<4000){
+  const patches=[...new Map(segments.flatMap(({a,b})=>sweptStreet(a.x,a.z,b.x,b.z)).filter(t=>!blocked(t.x,t.z)).map(t=>[t.id,t])).values()];
+  if(patches.length){const results=await d.batch(patches.flatMap(t=>[
+   d.prepare('INSERT INTO world_work(key,town_id,object_id,target_id,completed) VALUES(?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET completed=excluded.completed WHERE world_work.completed<=?').bind(`${r!.town_id}:${t.group}`,r!.town_id,t.group,t.id,now,now-WORK_DAY_MS),
+   d.prepare('UPDATE residents SET coins=coins+?,xp=xp+1 WHERE id=? AND changes()=1').bind(sweepWage.coins,r!.id),
+   d.prepare('UPDATE towns SET treasury=treasury+? WHERE id=? AND changes()=1').bind(sweepWage.tax,r!.town_id),
+   recordContribution(d,r!,now,'clean',1,sweepWage.tax)
+  ]));swept=results.filter((_,i)=>i%4===0).reduce((n,v)=>n+v.meta.changes,0);}
+ }
  r=(await d.prepare('SELECT * FROM residents WHERE id=?').bind(r.id).first<Row>())!;
- return json({...await state(r),corrected:!allowed||!moved,mowReward:cut?{patches:cut,coins:cut*mowWage.coins,tax:cut*mowWage.tax}:null});
+ return json({...await state(r),sweepReward:swept?{count:swept,coins:swept*sweepWage.coins}:null,corrected:!allowed||!moved,mowReward:cut?{patches:cut,coins:cut*mowWage.coins,tax:cut*mowWage.tax}:null});
 }
 else if(b.action==='begin'){if(r.home===null)return json({error:'Choose a home and job first.'},400);const t=TASKS.find(t=>t.id===b.task);if(t?.job==='mow')return json({error:'Hop on a mower and drive over fresh grass to earn your pay.'},400);if(!t||Math.hypot(t.x-r.x,t.z-r.z)>2.7)return json({error:'Walk a little closer to the work site.'},400);const key=`${r.town_id}:${t.id}`;const claim=await d.prepare('INSERT INTO work(key,town_id,task,resident_id,started) VALUES(?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET resident_id=excluded.resident_id,started=excluded.started,steps=0,last_step=0,completed=0 WHERE (work.completed>0 AND work.completed<?) OR (work.completed=0 AND MAX(work.started,work.last_step)<?) RETURNING *').bind(key,r.town_id,t.id,r.id,now,now-120000,now-60000).first();if(!claim){const existing=await d.prepare('SELECT * FROM work WHERE key=? AND resident_id=? AND completed=0').bind(key,r.id).first();if(!existing)return json({error:'A neighbor is taking care of this one. Try another nearby task.'},409);return json({work:existing})}return json({work:claim})}
 else if(b.action==='step'){const t=TASKS.find(t=>t.id===b.task);if(t?.job==='mow')return json({error:'Hop on a mower and drive over fresh grass to earn your pay.'},400);if(!t||Math.hypot(t.x-r.x,t.z-r.z)>2.7)return json({error:'Stay near the work site to finish.'},400);const w=await d.prepare('UPDATE work SET steps=MIN(5,steps+1),last_step=? WHERE key=? AND resident_id=? AND completed=0 AND started>? AND last_step<? RETURNING *').bind(now,`${r.town_id}:${t.id}`,r.id,now-180000,now-600).first<any>();if(!w)return json({error:'Take a moment between actions, then try again.'},409);return json({work:w})}

@@ -13,6 +13,11 @@ export const JOBS=[
 {id:'mow',name:'Lawn mower',description:'Fresh grass, neat stripes. Very satisfying.',tool:'Mower',verb:'Mow the grass',color:'#769951'},
 {id:'garden',name:'Community gardener',description:'Help the neighborhood bloom.',tool:'Watering can',verb:'Tend the flowers',color:'#b384a7'},
 {id:'deliver',name:'Delivery helper',description:'Bring today’s parcels to neighborhood doorsteps.',tool:'Parcel',verb:'Deliver the parcel',color:'#b57f55'},
+{id:'sweep',name:'Street sweeper',description:'Drive rotating brushes along the roads and leave a clean trail.',tool:'Street sweeper',verb:'Sweep the streets',color:'#cc9950'},
+{id:'wash',name:'Sidewalk powerwasher',description:'Wash away grime and reveal bright, clean paving.',tool:'Pressure washer',verb:'Powerwash sidewalks',color:'#73aeb8'},
+{id:'trim',name:'Hedge trimmer',description:'Shape unruly hedges into neat green borders.',tool:'Hedge trimmer',verb:'Trim the hedges',color:'#729453'},
+{id:'rake',name:'Leaf raker',description:'Gather fallen leaves and freshen the parks and yards.',tool:'Leaf rake',verb:'Rake leaves',color:'#b88750'},
+
 ];
 export const HOMES=HOME_LOTS.map((p,i)=>{const names=['Clover Cottage','Honeycomb House','Bluebell Nook','Rosemary Retreat','Peachwood Place','Fern Hollow'];const district=p.district;return{id:i,name:i<6?names[i]:`${i+1} ${district}`,x:p.x,z:p.z,color:['#e5c992','#e7ba9e','#d4dfbf','#e4c8aa','#eed6a1','#d8d7b3'][i%6],roof:['#b66549','#627e79','#677d9a','#bd8361','#b57761','#71855e'][i%6],description:`${district} · a garden and a welcoming front porch`}});
 export const TASKS=[{id:'paper-1',job:'paper',x:-9,z:-4,title:'Good news on Clover Lane'},{id:'clean-1',job:'clean',x:-6,z:3,title:'A tidy town square'},{id:'mow-1',job:'mow',x:-34,z:-8,title:'Freshen the village green'},{id:'garden-1',job:'garden',x:-12,z:3,title:'A little more color'},{id:'deliver-1',job:'deliver',x:6,z:-2,title:'Supplies for the market'},{id:'paper-2',job:'paper',x:8,z:-5,title:'The morning round'},{id:'clean-2',job:'clean',x:2,z:8,title:'Sweep the fountain path'},{id:'mow-2',job:'mow',x:-35,z:10,title:'A neat cottage lawn'},{id:'garden-2',job:'garden',x:3,z:-7,title:'Water the square planters'},{id:'deliver-2',job:'deliver',x:-6,z:-11,title:'A school supply delivery'}];
