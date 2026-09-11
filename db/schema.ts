@@ -35,4 +35,4 @@ export const friendships=sqliteTable('friendships',{a:text('a').notNull().refere
 export const directMessages=sqliteTable('direct_messages',{id:text('id').primaryKey(),sender:text('sender').notNull().references(()=>residents.id),recipient:text('recipient').notNull().references(()=>residents.id),text:text('text').notNull(),created:integer('created').notNull(),read:integer('read').notNull().default(0)},t=>[index('dm_recipient_time').on(t.recipient,t.created),index('dm_sender_time').on(t.sender,t.created)]);
 export const homeInvitations=sqliteTable('home_invitations',{host:text('host').notNull().references(()=>residents.id),guest:text('guest').notNull().references(()=>residents.id),townId:text('town_id').notNull(),created:integer('created').notNull(),expires:integer('expires').notNull()},t=>[primaryKey({columns:[t.host,t.guest]}),index('invitations_guest').on(t.guest)]);
 
-export {user,session,account,verification,rateLimit} from './auth-schema';
+export {user,session,account,verification,rateLimit,passkey} from './auth-schema';

@@ -195,3 +195,14 @@ body:has(.housing-modal) [data-slot=dialog-overlay]{backdrop-filter:none;backgro
 @media(prefers-reduced-motion:reduce){.minimap-quick-zoom{transition:none}}
 
 .world-error details{margin-top:14px;font-size:12px}.world-error summary{cursor:pointer;padding:8px 0}.world-error pre{white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;font-size:11px;max-height:130px;overflow:auto}
+
+/* Town chat sits with its conversation, clear of the activity dock and joystick. */
+.town-chat-anchor{position:absolute;left:max(var(--hud-edge),env(safe-area-inset-left));bottom:calc(var(--hud-bottom) + var(--dock-height) + 12px);z-index:25;pointer-events:auto}
+.game .town-chat{bottom:calc(var(--hud-bottom) + var(--dock-height) + 66px);max-height:calc(100dvh - var(--hud-bottom) - var(--dock-height) - 150px - env(safe-area-inset-top))}
+@media(max-width:700px){.game .mobile-controls{bottom:calc(var(--hud-bottom) + var(--dock-height) + 66px)}}
+@media(min-width:701px){.game:has(.town-chat-anchor) .interaction{left:calc(var(--hud-edge) + 155px);transform:none;max-width:min(300px,calc(100vw - 360px))}}
+.game .topbar{left:max(var(--hud-edge),env(safe-area-inset-left));right:max(var(--hud-edge),env(safe-area-inset-right))}
+.account-brand{padding-top:max(30px,env(safe-area-inset-top))}.interior-header{padding-top:max(18px,env(safe-area-inset-top))}
+@media(max-width:700px){.account-brand{padding-top:max(18px,env(safe-area-inset-top))}.interior-header{padding-top:max(12px,env(safe-area-inset-top))}}
+.passkey-login{display:grid;gap:12px;margin:0 0 16px}.passkey-login>span{text-align:center;color:#71775f;font-size:12px}
+.passkey-settings{border-bottom:1px solid #ded6b9;padding-bottom:18px;margin-bottom:18px}.passkey-settings h3{display:flex;align-items:center;gap:8px;font-size:18px;margin:0 0 8px}.passkey-settings p{font-size:14px;line-height:1.5}.passkey-settings label{display:block;font-size:13px;font-weight:600;margin:12px 0 7px}.passkey-settings label small{font-weight:400}.passkey-settings input{width:100%;padding:12px;border:1px solid #c8cdb6;border-radius:10px;background:#fffef7;font-size:16px;min-height:44px;margin-bottom:10px}.passkey-settings ul{list-style:none;padding:0;margin:14px 0;display:grid;gap:8px}.passkey-settings li{display:flex;gap:10px;align-items:center;justify-content:space-between;background:#eeeddb;border-radius:10px;padding:10px;flex-wrap:wrap}.passkey-settings li>div:first-child{min-width:0;flex:1}.passkey-settings strong{display:block;overflow-wrap:anywhere;font-size:14px}.passkey-settings li small{display:block;font-size:12px;color:#71775f;margin-top:4px}.passkey-remove{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}.passkey-remove>span{flex-basis:100%}.passkey-remove button{min-height:44px}.passkey-settings .passkey-notice{color:#3d6946}.passkey-settings .account-error{color:#9a4034}.passkey-reload{display:block;text-decoration:underline;min-height:44px;font-size:13px}

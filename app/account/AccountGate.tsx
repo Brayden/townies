@@ -1,15 +1,19 @@
 'use client';
 import {createContext,useCallback,useContext,useEffect,useState,type ReactNode} from 'react';
-import {ArrowRight,Eye,EyeOff,LoaderCircle,LogOut,Leaf} from 'lucide-react';
+import {ArrowRight,Eye,EyeOff,LoaderCircle,LogOut,Leaf,KeyRound} from 'lucide-react';
+import {authClient,passkeyError,supportsPasskeys} from './authClient';
+import PasskeySettings from './PasskeySettings';
 type Account={id?:string;name:string;email?:string};
 const AccountContext=createContext<{user:Account;mode:string;signOut:()=>Promise<void>}|null>(null);
 export const useAccount=()=>useContext(AccountContext);
 export default function AccountGate({children}:{children:ReactNode}){
  const [user,setUser]=useState<Account|null>(null),[mode,setMode]=useState('account'),[checking,setChecking]=useState(true),[form,setForm]=useState<'login'|'signup'>('signup'),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[show,setShow]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[invited,setInvited]=useState(false);
+ const [passkeySupported,setPasskeySupported]=useState(false);useEffect(()=>setPasskeySupported(supportsPasskeys()),[]);
  const check=useCallback(async()=>{try{const r=await fetch('/api/account',{cache:'no-store'}),v=await r.json() as {user:Account|null;mode:string;error?:string};if(!r.ok)throw new Error(v.error);setUser(v.user);setMode(v.mode);setError('')}catch{setError('We couldn’t connect. Please try again.')}finally{setChecking(false)}},[]);
  useEffect(()=>{void check();setInvited(new URLSearchParams(window.location.hash.slice(1)).has('town'));const expired=()=>{setUser(null);setForm('login');setError('Please log in again to continue. Your town progress is saved.')};window.addEventListener('townies-session-ended',expired);return()=>window.removeEventListener('townies-session-ended',expired)},[check]);
  async function signOut(){if(mode==='sites'){window.location.assign('/signout-with-chatgpt?return_to=%2F');return}const r=await fetch('/api/auth/sign-out',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(!r.ok)throw new Error('Could not log out. Please try again.');setUser(null);setForm('login');setPassword('');setError('')}
  async function submit(e:React.FormEvent){e.preventDefault();if(busy)return;setBusy(true);setError('');try{const r=await fetch(`/api/auth/${form==='signup'?'sign-up/email':'sign-in/email'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim(),password,...(form==='signup'?{name:name.trim()}:{}),rememberMe:true})});const v=await r.json() as {message?:string};if(!r.ok)throw new Error(r.status===429?'Too many attempts. Please wait a minute and try again.':form==='login'?'That email and password didn’t match. Please try again.':v.message??'We couldn’t create your account. Please try again.');setPassword('');await check()}catch(e){setError(e instanceof Error?e.message:'Please try again.')}finally{setBusy(false)}}
+ async function passkeyLogin(){if(busy)return;setBusy(true);setError('');try{const result=await authClient.signIn.passkey();if(result.error){setError(passkeyError(result.error,'login'));return}setPassword('');await check()}catch{setError('Passkey sign-in couldn’t connect. Try again or use your password.')}finally{setBusy(false)}}
  if(user)return <AccountContext.Provider value={{user,mode,signOut}}>{children}</AccountContext.Provider>;
  return <main className="account-home">
   <div className="account-town" aria-hidden="true"/>
@@ -21,6 +25,7 @@ export default function AccountGate({children}:{children:ReactNode}){
     <h2>{form==='signup'?'Make yourself at home.':'Welcome home.'}</h2><p>{invited?'Your town invitation will be waiting after you sign in.':form==='signup'?'Create an account to find your first town.':'Log in to pick up where you left off.'}</p>
     {mode==='sites'?<a className="primary-button full" href="/signin-with-chatgpt?return_to=%2F" target="_top">Continue with ChatGPT<ArrowRight size={18}/></a>:<>
     <div className="account-tabs" role="group" aria-label="Account options"><button aria-pressed={form==='signup'} onClick={()=>{setForm('signup');setError('');setPassword('')}}>Create account</button><button aria-pressed={form==='login'} onClick={()=>{setForm('login');setError('');setPassword('')}}>Log in</button></div>
+    {form==='login'&&passkeySupported&&<div className="passkey-login"><button type="button" className="secondary-button full" disabled={busy} onClick={()=>void passkeyLogin()}><KeyRound size={18}/>Log in with a passkey</button><span>or use your password</span></div>}
     <form onSubmit={submit}>
      {form==='signup'&&<><label htmlFor="account-name">Your name</label><input id="account-name" autoComplete="name" required minLength={2} maxLength={24} value={name} onChange={e=>setName(e.target.value)} placeholder="What should we call you?"/></>}
      <label htmlFor="account-email">Email</label><input id="account-email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" autoCapitalize="none" spellCheck={false}/>
@@ -35,4 +40,4 @@ export default function AccountGate({children}:{children:ReactNode}){
   </section></div>
  </main>;
 }
-export function AccountSettings(){const account=useAccount();const [busy,setBusy]=useState(false),[error,setError]=useState('');if(!account)return null;return <div className="account-settings"><p>Signed in as <strong>{account.user.email??account.user.name}</strong></p><button className="secondary-button full" disabled={busy} onClick={async()=>{setBusy(true);try{await account.signOut()}catch{setError('We couldn’t log you out. Please try again.')}finally{setBusy(false)}}}><LogOut size={17}/>Log out</button>{error&&<p role="alert">{error}</p>}</div>}
+export function AccountSettings(){const account=useAccount();const [busy,setBusy]=useState(false),[error,setError]=useState('');if(!account)return null;return <div className="account-settings">{account.mode==='account'&&<PasskeySettings/>}<p>Signed in as <strong>{account.user.email??account.user.name}</strong></p><button className="secondary-button full" disabled={busy} onClick={async()=>{setBusy(true);try{await account.signOut()}catch{setError('We couldn’t log you out. Please try again.')}finally{setBusy(false)}}}><LogOut size={17}/>Log out</button>{error&&<p role="alert">{error}</p>}</div>}

@@ -1,1 +1,1 @@
-{"name":"Townies","short_name":"Townies","description":"Your little corner of the world.","start_url":"/","display":"standalone","background_color":"#b8d8d0","theme_color":"#486546"}
+{"name":"Townies","short_name":"Townies","description":"Your little corner of the world.","start_url":"/","display":"fullscreen","background_color":"#b8d8d0","theme_color":"#486546","scope":"/","id":"/"}
