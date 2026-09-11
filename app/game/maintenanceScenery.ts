@@ -16,7 +16,7 @@ export function maintenanceScenery(scene:THREE.Scene,blocked:(x:number,z:number)
  make('hedge','trim',1,new THREE.BoxGeometry(1,1,1),'#63854a');
  make('growth','trim',7,new THREE.IcosahedronGeometry(1,1),'#8aab5b');
  make('leaves','rake',14,new THREE.SphereGeometry(1,4,2),'#c28a40');
- const clean=new Map<string,number>();let workKey='',nextRefresh=0;
+ const clean=new Map<string,number>(),targetIds=new Set(targets.map(t=>t.group));let workKey='',activeKey='',initialized=false,nextRefresh=0,nextRegrowth=Infinity;
  return {pick(ray:THREE.Ray,job:string|null,done:Set<string>){
   const box=new THREE.Box3(),hit=new THREE.Vector3();let closest:MaintenanceTarget|undefined,distance=Infinity;
   for(const t of targets){if(t.job!==job||t.job==='sweep'||done.has(t.id))continue;
@@ -25,10 +25,11 @@ export function maintenanceScenery(scene:THREE.Scene,blocked:(x:number,z:number)
   }
   return closest;
  },update(work:{id:string;completed:number}[],workers:Worker[],now:number){
-  const key=work.map(w=>`${w.id}=${w.completed}`).join('|'),active=new Map<string,number>();
-  for(const worker of workers)if(worker.wateringTarget&&workDuration(worker.shift??''))active.set(worker.wateringTarget,Math.min(.97,Math.max(active.get(worker.wateringTarget)??0,(now-worker.wateringStarted)/workDuration(worker.shift!))));
-  if(key===workKey&&now<nextRefresh)return;
-  workKey=key;nextRefresh=now+(active.size?66:250);clean.clear();for(const w of work)if(now-w.completed<WORK_DAY_MS)clean.set(w.id,w.completed);
+  const relevant=work.filter(w=>targetIds.has(w.id)),key=relevant.map(w=>`${w.id}=${w.completed}`).sort().join('|'),active=new Map<string,number>();
+  for(const worker of workers)if(worker.wateringTarget&&targetIds.has(worker.wateringTarget)&&workDuration(worker.shift??''))active.set(worker.wateringTarget,Math.min(.97,Math.max(active.get(worker.wateringTarget)??0,(now-worker.wateringStarted)/workDuration(worker.shift!))));
+  const working=Array.from(active.keys()).sort().join('|');
+  if(initialized&&key===workKey&&working===activeKey&&now<nextRegrowth&&(!active.size||now<nextRefresh))return;
+  initialized=true;workKey=key;activeKey=working;nextRefresh=now+66;nextRegrowth=Infinity;clean.clear();for(const w of relevant)if(now-w.completed<WORK_DAY_MS){clean.set(w.id,w.completed);nextRegrowth=Math.min(nextRegrowth,w.completed+WORK_DAY_MS);}
   for(const batch of batches){let index=0;for(const t of batch.targets){const done=clean.has(t.group),progress=done?1:active.get(t.id)??0;
    for(let j=0;j<batch.pieces;j++){
     const a=j*2.399+t.x,spread=1-progress;

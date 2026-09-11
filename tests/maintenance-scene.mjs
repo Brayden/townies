@@ -30,6 +30,14 @@ assert.equal(meshes.length,6,'All scenery is rendered in six instance batches');
 const matrix=new THREE.Matrix4(),scale=new THREE.Vector3();
 function visible(mesh,start=0,count=mesh.count){let n=0;for(let i=start;i<start+count;i++){mesh.getMatrixAt(i,matrix);scale.setFromMatrixScale(matrix);if(scale.length()>.01)n++}return n}
 let now=1_800_000_000_000;art.update([],[],now);
+const versions=()=>meshes.map(m=>m.instanceMatrix.version);
+const stable=versions();art.update([],[],now+60000);assert.deepEqual(versions(),stable,'Idle scenery does not rewrite or upload instance buffers');
+art.update([{id:'paper-unrelated',completed:now}],[],now+61000);assert.deepEqual(versions(),stable,'Other professions do not upload maintenance scenery');
+const washTarget=MAINTENANCE_TARGETS.find(t=>t.job==='wash');
+art.update([],[{shift:'wash',wateringTarget:washTarget.id,wateringStarted:now-1000}],now+1);
+assert.notDeepEqual(versions(),stable,'Starting work updates immediately');
+const workingVersion=versions();art.update([],[],now+2);assert.notDeepEqual(versions(),workingVersion,'Cancelling work resets partial art immediately');
+
 const jobs={wash:{mesh:meshes[1],pieces:12},sweep:{mesh:meshes[2],pieces:7},trim:{mesh:meshes[4],pieces:7},rake:{mesh:meshes[5],pieces:14}};
 for(const [job,{mesh,pieces}]of Object.entries(jobs)){
  const target=MAINTENANCE_TARGETS.find(t=>t.job===job);assert.equal(visible(mesh,0,pieces),pieces);

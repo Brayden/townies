@@ -13,7 +13,7 @@ const root=createRoot(document.getElementById('root'));window.readyCount=0;windo
 window.props={enabled:true,player:{id:'local-camera-test',name:'Local player',color:'#688aa1',x:0,z:6},planning:structuredClone(EMPTY_PLANNING),properties:[{home:0,house:HOUSES[0].id,name:'A',items:[]},{home:1,house:HOUSES[0].id,name:'B',items:[]}]};
 window.update=(patch={})=>{Object.assign(window.props,patch);flushSync(()=>root.render(<main className="game"><TownScene {...window.props} onReady={api=>{window.scene=api;window.readyCount++}}/></main>))};window.update();`,resolveDir:process.cwd(),loader:'tsx'},outfile:directory+'/scene.js',bundle:true,format:'iife',define:{'process.env.NODE_ENV':'"production"'},plugins:[{name:'test-only-camera-observation',setup(b){b.onLoad({filter:/\/TownScene\.tsx$/},async args=>{
  const source=await readFile(args.path,'utf8');
- return {loader:'tsx',contents:source.replace('frame=requestAnimationFrame(animate);\nreturn()=>',`window.inspectCamera=()=>({viewHeight,yaw,pitch,target:target.toArray(),cameraTarget:cameraTarget.toArray(),follow,inspecting,currentFocus,position:you.position.toArray(),keys:[...keys]});\nframe=requestAnimationFrame(animate);\nreturn()=>`)};
+ return {loader:'tsx',contents:source.replace('frame=requestAnimationFrame(animate);\nreturn()=>',`window.inspectPeers=()=>Array.from(people.values());window.inspectCamera=()=>({viewHeight,yaw,pitch,target:target.toArray(),cameraTarget:cameraTarget.toArray(),follow,inspecting,currentFocus,position:you.position.toArray(),keys:[...keys]});\nframe=requestAnimationFrame(animate);\nreturn()=>`)};
 })}}]});
 const css=(await readFile('app/globals.css','utf8')).split('\n').slice(5).join('\n');
 const server=createServer(async(req,res)=>{res.setHeader('Content-Type',req.url==='/scene.js'?'application/javascript':'text/html');res.end(req.url==='/scene.js'?await readFile(directory+'/scene.js'):`<!doctype html><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css}</style><div id="root"></div><script src="/scene.js"></script>`)});
@@ -72,5 +72,16 @@ try{
  for(const key of ['yaw','pitch','viewHeight','follow','inspecting','cameraTarget'])assert.deepEqual(recovered[key],recoveryBefore[key],key);
  assert.deepEqual(errors,[]);
  console.log('PASS: automatic graphics recovery preserves the inspected location, orbit and zoom.');
+ // Track actual departing peer resources, including all new profession equipment.
+ for(const shift of ['sweep','wash','trim','rake']){
+   await page.evaluate(shift=>window.update({peers:[{id:'resource-peer',name:'Neighbor',color:'#688aa1',x:0,z:10,shift,wateringTarget:null}]}),shift);await frames();
+   await page.evaluate(()=>{const peer=window.inspectPeers()[0];window.peerGeometry=new Set();window.disposedPeerGeometry=new Set();peer.traverse(o=>{if(o.geometry){window.peerGeometry.add(o.geometry.id);o.geometry.addEventListener('dispose',()=>window.disposedPeerGeometry.add(o.geometry.id))}})});
+   await page.evaluate(()=>window.update({peers:[]}));await frames();
+   assert.ok(await page.evaluate(()=>window.peerGeometry.size>50));
+   assert.equal(await page.evaluate(()=>window.disposedPeerGeometry.size),await page.evaluate(()=>window.peerGeometry.size));
+ }
+ assert.deepEqual(errors,[]);
+ console.log('PASS: departing neighbors release all character, vehicle, and job-equipment geometry across repeated joins/leaves.');
+
 
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve))}

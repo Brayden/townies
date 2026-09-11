@@ -36,3 +36,16 @@ The outdoor error panel includes selectable browser, viewport and context-creati
 - `node tests/camera-browser.mjs`: camera continuity, scenery rebuilds, and automatic graphics recovery.
 
 Browser checks run headless Chromium with software graphics and the GPU blocklist bypassed. Touch emulation is not a physical-phone or social-app-browser test; specific driver behavior remains unverified. Initial user reports were context-creation failures before town geometry was constructed. Without affected-device diagnostics, no single cause is established for all reports.
+
+## Maintenance-job regression investigation
+
+A player reported Chrome failing while Safari still worked on the same computer, with the change noticed after maintenance jobs were added. The diagnostic remains a WebGL 2 context-creation refusal; it does not establish whether an earlier session exhausted resources or Chrome disabled graphics for another reason. Safari success is not sufficient to exclude an application-triggered Chrome issue.
+
+Review found two concrete issues:
+
+- Maintenance scenery rewrote and uploaded all six instance-matrix buffers every 250 ms when idle. It now updates only when relevant completion state changes, an active action needs animation, an action starts/stops, or the earliest 24-hour reset expires. Reordered rows and unrelated profession completions do not trigger maintenance uploads.
+- Outdoor peer removal detached the avatar without disposing its geometry or private equipment materials. `releaseAvatar` releases those allocations on departure, preserving palette materials shared with scenery and other players. This removal gap predates the new jobs; adding their equipment increases the resources affected.
+
+Verification: `node tests/maintenance-scene.mjs` checks idle buffer versions, immediate action/cancellation updates, animations, completion and 24-hour resets. `node tests/avatar-resources.mjs` checks private-resource disposal and shared-material preservation. The real-scene camera browser test checks repeated peer departures across all four new professions and verifies every attached geometry receives disposal.
+
+These are confirmed resource-management fixes, not confirmation of the affected Chrome's failure cause. A fresh Chrome restart and its `chrome://gpu` report are still useful to distinguish a lingering GPU failure from reproducible game-triggered pressure. Google documents that browsers may disable WebGL after instability: https://support.google.com/meet/answer/9302964.
