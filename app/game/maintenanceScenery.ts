@@ -11,8 +11,8 @@ export function maintenanceScenery(scene:THREE.Scene,blocked:(x:number,z:number)
   const ts=targets.filter(t=>t.job===job),mesh=new THREE.InstancedMesh(geometry,new THREE.MeshStandardMaterial({color,roughness:1}),ts.length*pieces);mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);mesh.frustumCulled=false;mesh.receiveShadow=true;mesh.castShadow=job==='trim';scene.add(mesh);batches.push({mesh,targets:ts,pieces,kind});
  };
  make('paving','wash',1,new THREE.BoxGeometry(1,1,1),'#d1cab3');
- make('grime','wash',12,new THREE.BoxGeometry(1,1,1),'#8d8b69');
- make('road','sweep',7,new THREE.IcosahedronGeometry(1,0),'#92764e');
+ make('grime','wash',12,new THREE.BoxGeometry(1,1,1),'#bcb69f');
+ make('road','sweep',7,new THREE.IcosahedronGeometry(1,0),'#bba37c');
  make('hedge','trim',1,new THREE.BoxGeometry(1,1,1),'#63854a');
  make('growth','trim',7,new THREE.IcosahedronGeometry(1,1),'#8aab5b');
  make('leaves','rake',14,new THREE.SphereGeometry(1,4,2),'#c28a40');
@@ -41,7 +41,7 @@ export function maintenanceScenery(scene:THREE.Scene,blocked:(x:number,z:number)
      if(j/batch.pieces<progress)dummy.scale.setScalar(0);
     }
     if(batch.kind==='road'){
-     dummy.position.set(t.x+Math.sin(a)*t.width*.4,.22,t.z+Math.cos(a*1.7)*t.depth*.4);dummy.rotation.y=a;dummy.scale.set(.12+(j%3)*.07,.045,.08+(j%2)*.09);if(done)dummy.scale.setScalar(0);
+     dummy.position.set(t.x+Math.sin(a)*t.width*.4,.22,t.z+Math.cos(a*1.7)*t.depth*.4);dummy.rotation.y=a;dummy.scale.set(.1+(j%3)*.05,.025,.07+(j%2)*.06);if(done)dummy.scale.setScalar(0);
     }
     if(batch.kind==='hedge'){dummy.position.y=.57;dummy.scale.set(t.width,.92,t.depth);}
     if(batch.kind==='growth'){

@@ -22,8 +22,11 @@ Every completion stays tidy for 24 hours; restarting a shift does not reset it.
 Existing grass regrowth is unchanged. This expands finite shared maintenance;
 it does not introduce endlessly generated private service contracts.
 
-The minimap displays the current job's work areas: gray needs work, green is
-complete. Next walks to a reachable edge for handheld work. Ray/box picking
+The minimap displays the current job's work areas: gold tool pins need work,
+green checks are complete. Nearby spots are grouped with remaining-work counts
+when zoomed out. Selecting a pin focuses an actual unfinished target. Quick
+plus/minus controls appear on hover/focus (always on touch screens), and seven
+zoom levels reach 8×. Road debris and sidewalk grime use subtle warm tones. Next walks to a reachable edge for handheld work. Ray/box picking
 supports tapping the actual raised hedge or sidewalk. Areas underneath newly
 placed town buildings are hidden, omitted from route suggestions, and rejected
 by the server. Town members see tools and timed progress through existing peer

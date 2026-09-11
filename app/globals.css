@@ -181,3 +181,15 @@ body:has(.housing-modal) [data-slot=dialog-overlay]{backdrop-filter:none;backgro
 .town-canvas{position:absolute;inset:0}
 
 .town-chat-launch{position:relative}.town-chat-unread{position:absolute;right:-6px;top:-7px;min-width:23px;height:23px;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid #fffbed;border-radius:20px;background:#bb3f42;color:#fff;font-size:12px;font-weight:800;line-height:19px;font-variant-numeric:tabular-nums;box-shadow:0 2px 5px #41222a30}.chat-tab-unread{display:inline-flex;align-items:center;justify-content:center;min-width:19px;min-height:19px;margin-left:6px;padding:1px 5px;border-radius:12px;background:#bb3f42;color:#fff;font-size:11px;font-weight:700}
+
+/* Job map markers stay readable while the square map keeps its HUD footprint. */
+.minimap-work-heading{position:absolute;left:5px;top:5px;display:flex;align-items:center;gap:4px;padding:2px 5px;border-radius:5px;background:#fffbedf2;color:#74501f;font-size:12px;font-weight:700;line-height:18px;pointer-events:none}
+.minimap-work-legend{position:absolute;left:5px;bottom:5px;display:flex;align-items:center;gap:4px;padding:2px 5px;border-radius:5px;background:#fffbedf2;color:#495441;font-size:12px;line-height:18px;pointer-events:none}
+.minimap-work-legend i{width:7px;height:7px;border-radius:50%;background:#ba822c}.minimap-work-legend svg{color:#28733f;margin-left:3px}
+.minimap-work-pin{cursor:pointer}.minimap-work-pin:focus-visible{outline:2px solid #344f61;outline-offset:2px}.minimap-work-pin:hover>rect{stroke:#365d71;stroke-width:2px}
+.minimap-quick-zoom{position:absolute;right:52px;bottom:calc(100% + 8px);display:flex;gap:4px;opacity:0;pointer-events:none;transform:translateY(4px);transition:opacity .15s,transform .15s}
+.minimap-quick-zoom:after{content:'';position:absolute;top:100%;left:0;right:0;height:9px}
+.map-hud:hover .minimap-quick-zoom,.map-hud:focus-within .minimap-quick-zoom{opacity:1;pointer-events:auto;transform:none}
+.minimap-quick-zoom .icon-button{width:36px;height:44px;background:#fffbedf5;box-shadow:0 2px 8px #273a3426}.minimap-quick-zoom button:disabled{opacity:.45;cursor:not-allowed}.minimap-quick-zoom button:focus-visible{outline:3px solid #527e94;outline-offset:2px}
+@media(hover:none),(pointer:coarse){.minimap-quick-zoom{opacity:1;pointer-events:auto;transform:none}.minimap-quick-zoom .icon-button{width:44px;height:44px}}
+@media(prefers-reduced-motion:reduce){.minimap-quick-zoom{transition:none}}
