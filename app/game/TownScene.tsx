@@ -241,7 +241,7 @@ for(const f of [...paperFlights.values()]){
  if(!f.released){you.updateMatrixWorld(true);const hand=you.localToWorld(new THREE.Vector3(.42,1.16,.3));f.origin.copy(hand);if(elapsed>=PAPER_TIMING.release||reducedMotion){f.released=true;p.onPaperSound?.('release');}}
  const pose=paperPose(elapsed,f.origin,f.home,reducedMotion);f.paper.position.set(pose.position.x,pose.position.y,pose.position.z);f.paper.rotation.set(pose.rotation.x,pose.rotation.y,pose.rotation.z);f.paper.scale.set(pose.scale.x,pose.scale.y,pose.scale.z);
  if(elapsed<240&&!reducedMotion){const flick=Math.sin(Math.min(1,elapsed/240)*Math.PI);you.userData.arms[1].rotation.z=-flick*1.45;you.userData.arms[1].rotation.x=-flick*.55;}
- if(!reducedMotion&&elapsed>=PAPER_TIMING.impact&&!f.impacted){f.impacted=true;p.onPaperSound?.('impact');}
+ if((elapsed>=PAPER_TIMING.impact||(reducedMotion&&pose.landed))&&!f.impacted){f.impacted=true;p.onPaperSound?.('impact');}
  const impactAge=elapsed-PAPER_TIMING.impact;f.ring.visible=!reducedMotion&&impactAge>=0&&impactAge<170;f.ring.scale.setScalar(1+Math.max(0,impactAge)/130);f.ringMaterial.opacity=Math.max(0,1-impactAge/170)*.75;
  if(pose.landed&&f.event.confirmed&&!f.celebratedAt){f.celebratedAt=wallTime;p.onPaperLanded?.(f.event);}
  if(f.celebratedAt){const age=wallTime-f.celebratedAt,progress=Math.min(1,age/700),landing=paperDestination(f.home).porch;f.paper.visible=false;f.sparkles.visible=!reducedMotion&&age<500;
