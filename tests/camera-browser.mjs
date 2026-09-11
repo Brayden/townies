@@ -63,8 +63,20 @@ try{
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{window.scene.lookAt(25,30);window.scene.zoom(5)});await frames();
  const mobile=await page.evaluate(()=>window.inspectCamera());await page.evaluate(()=>window.scene.setPosition(0,10));await frames();
  assert.deepEqual(await page.evaluate(()=>window.inspectCamera().cameraTarget),mobile.cameraTarget);
- await page.screenshot({path:directory+'/camera-mobile.png'});assert.deepEqual(errors,[]);
+ if(process.env.TOWNIES_SCREENSHOTS==='1')await page.screenshot({path:directory+'/camera-mobile.png'});assert.deepEqual(errors,[]);
  console.log('PASS: mobile inspection stays in place during movement corrections; no browser errors.');
+ // New local movement exits free camera, while corrections above do not.
+ const beforeKeyboard=await page.evaluate(()=>window.inspectCamera());
+ await page.keyboard.down('s');await frames();await page.keyboard.up('s');
+ const keyboardFollow=await page.evaluate(()=>window.inspectCamera());
+ assert.equal(keyboardFollow.follow,true);assert.equal(keyboardFollow.inspecting,false);
+ assert.equal(keyboardFollow.yaw,beforeKeyboard.yaw);assert.equal(keyboardFollow.viewHeight,beforeKeyboard.viewHeight);
+ await page.evaluate(()=>{window.scene.lookAt(25,30);window.update({stick:{x:1,y:0}})});await frames();
+ assert.equal(await page.evaluate(()=>window.inspectCamera().follow),true);assert.equal(await page.evaluate(()=>window.inspectCamera().inspecting),false);
+ await page.evaluate(()=>{window.update({stick:{x:0,y:0}});window.scene.pan(20,20);window.scene.navigate(1,10)});await frames();
+ assert.equal(await page.evaluate(()=>window.inspectCamera().follow),true);
+ await page.evaluate(()=>{window.scene.stop();window.scene.lookAt(25,30)});await frames();
+ console.log('PASS: keyboard, joystick and click-to-walk restore camera follow while preserving rotation and zoom.');
  const recoveryBefore=await page.evaluate(()=>window.inspectCamera()),readyBefore=await page.evaluate(()=>window.readyCount);
  await page.evaluate(()=>document.querySelector('canvas').getContext('webgl2').getExtension('WEBGL_lose_context').loseContext());
  await page.waitForFunction(n=>window.readyCount>n&&!document.querySelector('[role=alert]'),readyBefore);await frames();

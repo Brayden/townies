@@ -1,0 +1,9 @@
+# Town work checklist and camera follow
+
+The compact **Town work** button below the town status opens shared progress for all nine playable jobs. The collapsed label counts job types that need help; the dropdown shows total remaining tasks, per-job completed/total counts, progress bars, and a completed checkmark. Selecting an unfinished job uses the existing start-shift flow. Completed jobs cannot be started from this checklist. When nothing remains, the label reads **All jobs complete**.
+
+Counts use the existing shared town snapshot. Mailboxes and doors are deduplicated by delivery group; parcels use the town's deterministic daily route and UTC reset. Grass and other jobs expire at their existing 24-hour boundaries. The available geometry is filtered through the current town layout so buildings covering work spots do not inflate the totals. Counts refresh with shared state and once per second while the tab is visible, and on returning to it; no new polling requests, database schema, or completion writes are introduced. This covers the nine regular jobs, rather than town construction funding or farm social activities.
+
+Keyboard and joystick movement now exit free-camera inspection and resume following the resident smoothly, retaining yaw, pitch, and zoom. Click-to-walk already restores follow. Server position corrections by themselves continue to leave free-camera inspection in place. The current house focus is consumed so an old selection does not pull the camera back away.
+
+Validation: `tests/town-work.mjs` checks job counts, shared delivery grouping, parcel resets, 24-hour regrowth, completed-town state, and blocked grass after construction. `tests/camera-browser.mjs` exercises the actual 3D scene with keyboard, joystick, click-to-walk, position corrections, rebuilding, and graphics recovery. Screenshots are optional via `TOWNIES_SCREENSHOTS=1`.
