@@ -1,7 +1,6 @@
 'use client';
 import {createContext,useCallback,useContext,useEffect,useState,type ReactNode} from 'react';
 import {ArrowRight,Eye,EyeOff,LoaderCircle,LogOut,Leaf} from 'lucide-react';
-import TownScene from '../game/TownScene';
 type Account={id?:string;name:string;email?:string};
 const AccountContext=createContext<{user:Account;mode:string;signOut:()=>Promise<void>}|null>(null);
 export const useAccount=()=>useContext(AccountContext);
@@ -13,7 +12,7 @@ export default function AccountGate({children}:{children:ReactNode}){
  async function submit(e:React.FormEvent){e.preventDefault();if(busy)return;setBusy(true);setError('');try{const r=await fetch(`/api/auth/${form==='signup'?'sign-up/email':'sign-in/email'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim(),password,...(form==='signup'?{name:name.trim()}:{}),rememberMe:true})});const v=await r.json() as {message?:string};if(!r.ok)throw new Error(r.status===429?'Too many attempts. Please wait a minute and try again.':form==='login'?'That email and password didn’t match. Please try again.':v.message??'We couldn’t create your account. Please try again.');setPassword('');await check()}catch(e){setError(e instanceof Error?e.message:'Please try again.')}finally{setBusy(false)}}
  if(user)return <AccountContext.Provider value={{user,mode,signOut}}>{children}</AccountContext.Provider>;
  return <main className="account-home">
-  <div className="account-town" aria-hidden="true" inert>{!checking&&<TownScene enabled={false} onReady={api=>api.overview()}/>}</div>
+  <div className="account-town" aria-hidden="true"/>
   <div className="account-shade"/>
   <header className="account-brand"><span className="wordmark">townies<span>.</span></span></header>
   <div className="account-layout"><section className="account-intro"><span className="account-eyebrow"><Leaf size={17}/>A little town. A shared story.</span><h1>Your place<br/>in the neighborhood.</h1><p>Make a home, find your calling, and build a town worth coming back to—with friends.</p></section>

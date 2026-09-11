@@ -65,4 +65,12 @@ try{
  assert.deepEqual(await page.evaluate(()=>window.inspectCamera().cameraTarget),mobile.cameraTarget);
  await page.screenshot({path:directory+'/camera-mobile.png'});assert.deepEqual(errors,[]);
  console.log('PASS: mobile inspection stays in place during movement corrections; no browser errors.');
+ const recoveryBefore=await page.evaluate(()=>window.inspectCamera()),readyBefore=await page.evaluate(()=>window.readyCount);
+ await page.evaluate(()=>document.querySelector('canvas').getContext('webgl2').getExtension('WEBGL_lose_context').loseContext());
+ await page.waitForFunction(n=>window.readyCount>n&&!document.querySelector('[role=alert]'),readyBefore);await frames();
+ const recovered=await page.evaluate(()=>window.inspectCamera());
+ for(const key of ['yaw','pitch','viewHeight','follow','inspecting','cameraTarget'])assert.deepEqual(recovered[key],recoveryBefore[key],key);
+ assert.deepEqual(errors,[]);
+ console.log('PASS: automatic graphics recovery preserves the inspected location, orbit and zoom.');
+
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve))}
