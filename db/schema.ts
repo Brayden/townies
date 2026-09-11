@@ -36,3 +36,5 @@ export const directMessages=sqliteTable('direct_messages',{id:text('id').primary
 export const homeInvitations=sqliteTable('home_invitations',{host:text('host').notNull().references(()=>residents.id),guest:text('guest').notNull().references(()=>residents.id),townId:text('town_id').notNull(),created:integer('created').notNull(),expires:integer('expires').notNull()},t=>[primaryKey({columns:[t.host,t.guest]}),index('invitations_guest').on(t.guest)]);
 
 export {user,session,account,verification,rateLimit,passkey} from './auth-schema';
+
+export const chatReadPositions=sqliteTable('chat_read_positions',{townId:text('town_id').notNull(),residentId:text('resident_id').notNull(),channel:text('channel').notNull(),created:integer('created').notNull(),ids:text('ids').notNull()},t=>[primaryKey({columns:[t.townId,t.residentId,t.channel]})]);

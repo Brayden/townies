@@ -79,7 +79,8 @@ export class Town extends DurableObject<Cloudflare.Env>{
  })}
  private async changed(call:Call,value:any,ok=true){
   if(!ok)return;const b=call.body?JSON.parse(call.body):{};
-  if(call.path==='/api/chat'&&call.method==='POST'){const eligible=b.channel==='town'?undefined:new Set(this.rows('SELECT id FROM residents WHERE town_id=? AND job=?',this.townId,b.channel).map(r=>String(r.id)));this.live.notify('chat',undefined,b.channel,eligible)}
+  if(call.path==='/api/chat'&&call.method==='POST'&&b.action==='read'&&value.changed)this.live.notify('chat',value.readerId,b.channel);
+  if(call.path==='/api/chat'&&call.method==='POST'&&b.action!=='read'){const eligible=b.channel==='town'?undefined:new Set(this.rows('SELECT id FROM residents WHERE town_id=? AND job=?',this.townId,b.channel).map(r=>String(r.id)));this.live.notify('chat',undefined,b.channel,eligible)}
   if(call.path==='/api/social'&&call.method==='POST'){this.live.notify('social');if(['access','remove'].includes(b.action))this.live.notify('world')}
   if(call.path==='/api/game'&&call.method==='POST'&&!['heartbeat','movement-control','mower','shift','job','water-start','cancel-water','use','refill','life-emote','invite'].includes(b.action))this.live.notify('world');
   if(value?.resident?.inside||['home-exit','home-visit','home-enter'].includes(b.action)){

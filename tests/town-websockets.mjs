@@ -32,6 +32,19 @@ const device='ws-'+randomUUID();const control=await sa.ok({action:'movement-cont
 for(const m of sb.messages.filter(m=>m.type==='world')){const value=JSON.stringify(m);assert.ok(!/"(coins|interior|moveOwner|moveEpoch)"/.test(value),value)}
 const sa2=await connect(a);const phone=await sa2.ok({action:'movement-control',device:'phone-'+randomUUID(),moveEpoch:control.resident.moveEpoch});await until(()=>sa.personal.resident.moveEpoch===phone.resident.moveEpoch,'device takeover pushed');assert.equal((await sa.ok({action:'heartbeat',device,moveEpoch:control.resident.moveEpoch,x:1,z:6})).controlFollower,true);
 assert.equal((await sa.req({channel:'town',text:'Hello over a socket!',id:randomUUID()},'/api/chat')).status,200);await until(()=>sb.messages.some(m=>m.type==='changed'&&m.topic==='chat'&&m.channel==='town'),'chat push');assert.equal((await sb.req(undefined,'/api/chat','?channel=town')).value.messages.at(-1).text,'Hello over a socket!');assert.equal((await sb.req(undefined,'/api/chat','?channel=mow')).status,403);assert.ok(!sc.messages.some(m=>m.type==='changed'&&m.topic==='chat'));
+// Read progress lives in the town DO and notifies only this resident's devices.
+const sb2=await connect(b);
+const loadedChat=(await sb.req(undefined,'/api/chat','?channel=town')).value.messages;
+assert.equal((await sb2.req(undefined,'/api/chat','?channel=town&summary=1')).value.unread,1);
+const lastMessage=loadedChat.at(-1),beforeA=sa.messages.length,beforeB=sb.messages.length;
+const savedRead=await sb2.req({action:'read',channel:'town',read:{created:lastMessage.created,ids:[lastMessage.id]}},'/api/chat');
+assert.equal(savedRead.status,200);assert.equal(savedRead.value.changed,true);
+await until(()=>sb.messages.slice(beforeB).some(m=>m.type==='changed'&&m.topic==='chat'),'read receipt to other device');
+assert.ok(!sa.messages.slice(beforeA).some(m=>m.type==='changed'&&m.topic==='chat'),'Read activity stays private');
+assert.equal((await sb.req(undefined,'/api/chat','?channel=town&summary=1')).value.unread,0);
+assert.equal((await b.api('/api/chat?channel=town&summary=1')).value.unread,0,'HTTP fallback uses the same durable cursor');
+assert.equal((await sa.req(undefined,'/api/chat','?channel=town&summary=1')).value.read.created,0,'Other residents retain independent progress');
+sb2.ws.close(1000,'Read sync checked');
 // Duplicate request IDs cannot execute a second action.
 const duplicate=sa.id;sa.send({type:'request',id:duplicate,path:'/api/game',method:'POST',body:{action:'mower',active:true}});await until(()=>sa.messages.some(m=>m.id===duplicate&&m.status===409),'duplicate rejected');assert.equal((await sa.ok()).resident.mowing,false);
 const townDB=database(root+'/do/townies-Town',d=>d.prepare("SELECT 1 FROM _meta WHERE key='town' AND value=?").get(first.town.id));townDB.prepare('UPDATE residents SET x=-36.6,z=-9.3,seen=?,move_updated=? WHERE id=?').run(Date.now()-1200,Date.now()-1200,first.resident.id);await sa2.ok({action:'mower',active:true});const before=(await sa2.ok()).resident.coins;const cut=await sa2.ok({action:'heartbeat',device:phone.resident.moveOwner,moveEpoch:phone.resident.moveEpoch,x:-31.5,z:-9.3});assert.ok(cut.lawnCuts.length>0);assert.ok(cut.resident.coins>before);await until(()=>sb.world.lawnCuts.length===cut.lawnCuts.length,'grass push');assert.equal(sb.personal.resident.coins,bs.resident.coins);townDB.close();
@@ -54,5 +67,5 @@ try{let updates=0;townConnection.on('state',()=>updates++);townConnection.start(
  browserSockets.at(-1).terminate();await until(()=>browserSockets.length===2&&townConnection.connected(),'automatic browser reconnect');assert.equal(townConnection.snapshot().resident.id,bs.resident.id);
  townConnection.stop();const count=browserSockets.length;let release;globalThis.fetch=()=>new Promise(resolve=>release=resolve);townConnection.start();townConnection.stop();release(Response.json(value));await delay(100);assert.equal(browserSockets.length,count,'Logout during bootstrap must not open a socket');assert.equal(townConnection.snapshot().resident,undefined);
 }finally{townConnection.stop();for(const ws of browserSockets)ws.terminate();globalThis.fetch=nativeFetch;globalThis.WebSocket=nativeSocket}
-console.log('PASS: real WebSocket upgrades, auth/origin guards, movement and grass broadcasts, private-state isolation, device takeover, chat/DM notifications, replay protection, town transfer, logout, malformed/oversized frames, reconnect snapshots, actual client state delivery, automatic reconnect, and logout during bootstrap.');
+console.log('PASS: real WebSocket upgrades, auth/origin guards, movement and grass broadcasts, private-state isolation, device takeover, chat/DM notifications, durable private cross-device read receipts, replay protection, town transfer, logout, malformed/oversized frames, reconnect snapshots, actual client state delivery, automatic reconnect, and logout during bootstrap.');
 }finally{for(const s of sockets)s.ws.terminate();d1.close()}
