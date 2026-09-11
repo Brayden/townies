@@ -35,8 +35,9 @@ export function createTownRenderer(lightweight=false){
 
 export function resizeTownRenderer(renderer:THREE.WebGLRenderer,width:number,height:number){
   const w=Math.max(1,width),h=Math.max(1,height),light=!renderer.shadowMap.enabled;
-  // Bound the framebuffer even on large Retina displays and high-DPI phones.
-  const ratio=Math.min(globalThis.devicePixelRatio||1,light?1:1.7,Math.sqrt((light?1_200_000:3_000_000)/(w*h)));
+  // Keep high-density phones sharp without restoring costly shadows or MSAA.
+  // A separate pixel budget bounds memory on tablets and large displays.
+  const ratio=Math.min(globalThis.devicePixelRatio||1,light?2:1.7,Math.sqrt((light?2_000_000:3_000_000)/(w*h)));
   if(renderer.getPixelRatio()!==ratio)renderer.setPixelRatio(ratio);
   renderer.setSize(w,h);
 }

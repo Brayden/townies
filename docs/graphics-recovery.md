@@ -6,9 +6,9 @@ The account screen now uses `public/town-welcome.jpg`, a still captured from the
 
 `townRenderer.ts` shares graphics settings between outdoor and indoor views:
 
-- Touch-first devices, mobile user agents, devices reporting at most 4 GB memory, and devices with a saved lightweight recovery preference start without multisampling or shadows, at pixel ratio at most 1.
+- Touch-first devices, mobile user agents, devices reporting at most 4 GB memory, and devices with a saved lightweight recovery preference start without multisampling or shadows, at pixel ratio up to 2 for clear edges on high-density phones.
 - Other devices try the standard renderer and immediately fall back to default-power lightweight graphics if creation fails. Successful fallback and recovery save a local device preference.
-- Framebuffers are capped at 1.2 million pixels in light mode and 3 million in standard mode, including after viewport changes. Zero-size containers are clamped before sizing or camera aspect calculations outdoors.
+- Framebuffers are capped at 2 million pixels in light mode and 3 million in standard mode, including after viewport changes. Zero-size containers are clamped before sizing or camera aspect calculations outdoors.
 - Creation checks reject missing/already-lost contexts. Failed attempts and unmounted renderers explicitly release their WebGL contexts. Interior teardown also disposes the shadow render target.
 
 TownScene gives refused startup attempts two delayed retries (800 ms, then 1,600 ms). Permanent failure ends in a usable recovery panel; manual retry starts a fresh bounded attempt sequence. Effect cleanup cancels pending retry timers.
@@ -24,3 +24,5 @@ Both renderers isolate their imperative canvas host from React error content. Re
 `node tests/camera-browser.mjs` checks pan/orbit/zoom continuity, movement corrections, scenery changes, focus/reset behavior, and camera continuity through an automatic graphics restart. Override `PLAYWRIGHT_MODULE` and `CHROME_PATH` to run on other local installations.
 
 These are headless Chromium tests using software graphics with the GPU blocklist bypassed. Touch/viewport emulation is not a physical-phone or social-app-browser test; driver-specific compatibility remains unverified. If failures continue, collect the error panel details and the affected browser/device before narrowing the cause further.
+
+The initial light-mode cap of 1 CSS pixel per render pixel made high-density phones visibly pixelated. Light mode now uses up to 2× resolution within its 2-million-pixel budget, retaining default-power context creation, no multisampling/shadows, and the existing retry/recovery behavior. Browser checks verify portrait and landscape phone resolution plus the large-touch-screen budget.

@@ -104,10 +104,14 @@ try{
 
  const mobile=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});
  await mobile.goto(`http://127.0.0.1:${server.address().port}`);await mobile.waitForFunction(()=>window.readyCount===1);
- const mobileGraphics=await mobile.evaluate(()=>{const canvas=document.querySelector('canvas');return {antialias:canvas.getContext('webgl2').getContextAttributes().antialias,pixels:canvas.width*canvas.height}});
- assert.equal(mobileGraphics.antialias,false);assert.ok(mobileGraphics.pixels<=1200000);
+ const mobileGraphics=await mobile.evaluate(()=>{const canvas=document.querySelector('canvas');return {antialias:canvas.getContext('webgl2').getContextAttributes().antialias,pixels:canvas.width*canvas.height,width:canvas.width,height:canvas.height}});
+ assert.equal(mobileGraphics.antialias,false);assert.equal(mobileGraphics.width,780);assert.equal(mobileGraphics.height,1688);assert.ok(mobileGraphics.pixels<=2000000);
+ await mobile.setViewportSize({width:844,height:390});
+ await mobile.waitForFunction(()=>{const c=document.querySelector('canvas');return c.clientWidth===844&&c.width===c.clientWidth*2&&c.height===c.clientHeight*2});
+ await mobile.setViewportSize({width:1366,height:1024});
+ await mobile.waitForFunction(()=>{const c=document.querySelector('canvas');return c.clientWidth===1366&&c.width>1366&&c.width*c.height<=2000000});
  await mobile.evaluate(()=>window.unmount());await mobile.close();
- console.log('PASS: a fresh high-DPI touch device starts without multisampling and stays within the render-pixel budget.');
+ console.log('PASS: high-DPI phones render at 2× resolution in both orientations; large touch screens stay within the pixel budget without multisampling.');
 
  assert.deepEqual(errors,[]);
  console.log('PASS: total startup failure is recoverable on mobile; retry clears stale errors, and unmount leaves no live context.');
