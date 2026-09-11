@@ -1,7 +1,7 @@
 'use client';
 import {FARM_BEDS,PICNIC,cropStage} from './sharedLife';
 import {useEffect,useState} from 'react';
-import {PawPrint,Tractor,LockKeyhole,Package,Check,BookOpen,Sprout,Mailbox,Flower2,Landmark,Shirt,Store,Coffee,GraduationCap,Map as MapIcon,Minus,Plus,X} from 'lucide-react';
+import {PawPrint,Tractor,LockKeyhole,Package,Check,BookOpen,Sprout,Mailbox,Flower2,Landmark,Shirt,Store,Coffee,GraduationCap} from 'lucide-react';
 import {TOWN_FARM,FARM_GATE,farmIsOpen} from './townFarm';
 import {HOMES,type TownState} from './data';
 import {WORK_TARGETS,WORK_DAY_MS} from './workTargets';
@@ -13,8 +13,8 @@ import {ROADS,BRIDGES,COMMUNITY_PARK} from './townLayout';
 const paperStops=[...new Map(WORK_TARGETS.filter(t=>t.job==='paper').sort((a,b)=>Number(a.kind==='mailbox')-Number(b.kind==='mailbox')).map(t=>[t.group,t])).values()];
 const gardenStops=WORK_TARGETS.filter(t=>t.job==='garden');
 const ZOOMS=[1,1.5,2,3,4];
-export default function MiniMap({data,getPosition,onLook}:{data:TownState;getPosition:()=>{x:number;z:number}|undefined;onLook:(x:number,z:number)=>void}){
- const [level,setLevel]=useState(0),[open,setOpen]=useState(false),[position,setPosition]=useState({x:data.resident.x,z:data.resident.z});
+export default function MiniMap({data,getPosition,onLook,level=0}:{level?:number;data:TownState;getPosition:()=>{x:number;z:number}|undefined;onLook:(x:number,z:number)=>void}){
+ const [position,setPosition]=useState({x:data.resident.x,z:data.resident.z});
  useEffect(()=>{const timer=setInterval(()=>{const p=getPosition();if(p)setPosition({x:p.x,z:p.z})},100);return()=>clearInterval(timer)},[getPosition]);
  const buildings=townBuildings(data.planning),expanded=data.planning.territories.length>0;
  const paper=data.resident.shift==='paper',garden=data.resident.shift==='garden',parcel=data.resident.shift==='deliver',route=paper||garden||parcel,stops=paper?paperStops:parcel?WORK_TARGETS.filter(t=>t.job==='deliver'&&data.parcelHomes?.includes(t.home!)):gardenStops,Marker=paper?Mailbox:parcel?Package:Flower2,zoom=ZOOMS[level],span=(expanded?236:184)/zoom;
@@ -27,10 +27,7 @@ export default function MiniMap({data,getPosition,onLook}:{data:TownState;getPos
   const point=svg.createSVGPoint();point.x=clientX;point.y=clientY;
   const world=point.matrixTransform(matrix.inverse());onLook(world.x,world.y);
  }
- return <section className={`town-minimap ${open?'is-open':''}`} aria-label={paper?'Paper delivery minimap':garden?'Community gardening minimap':'Town minimap'} onKeyDown={e=>e.stopPropagation()}>
-  <button className="minimap-mobile-toggle secondary-button" onClick={()=>setOpen(v=>!v)} aria-expanded={open} aria-controls="town-minimap-content">{open?<X size={18}/>:route?<Marker size={18}/>:<MapIcon size={18}/>} {open?'Close map':paper?'Mail route':parcel?'Parcel route':garden?'Garden map':'Town map'}</button>
-  <div className="minimap-content paper" id="town-minimap-content">
-   <div className="minimap-heading"><strong>{paper?'Paper route':parcel?'Parcel route':garden?'Garden care':data.town.name}</strong><span>N ↑</span></div>
+ return <section className="town-minimap" aria-label={paper?'Paper delivery minimap':garden?'Community gardening minimap':parcel?'Parcel delivery minimap':'Town minimap'} onKeyDown={e=>e.stopPropagation()}>
    <svg className="town-minimap-map" onClick={e=>lookFromMap(e.currentTarget,e.clientX,e.clientY)} style={{cursor:'crosshair'}} aria-describedby="minimap-look-hint" viewBox={`${cx-span/2} ${cz-span/2} ${span} ${span}`} role="img" aria-label={paper?`${count} of ${stops.length} houses delivered. Green checked mailboxes are delivered; gray mailboxes are waiting.`:garden?`${count} of ${stops.length} beds watered. Green checked flowers are watered; gray flowers need water.`:'Town streets, homes, neighbors, and your position.'}>
     <rect x="-125" y="-110" width="265" height="230" fill="#78bbc9"/>{TERRITORIES.filter(t=>data.planning.territories.includes(t.id)).map(t=><rect key={t.id} x={t.x-t.width/2} y={t.z-t.depth/2} width={t.width} height={t.depth} fill="#b0c888"/>)}<rect x="-64" y="-64" width="128" height="128" fill="#afc487"/>
     <g><title>{farmIsOpen(data.planning)?'Town Farm · open':'Future Town Farm · road closed'}</title><rect x={TOWN_FARM.x-TOWN_FARM.width/2} y={TOWN_FARM.z-TOWN_FARM.depth/2} width={TOWN_FARM.width} height={TOWN_FARM.depth} fill={farmIsOpen(data.planning)?'#9fbd73':'#aaa98a'} stroke="#7b815b" strokeWidth=".6" strokeDasharray={farmIsOpen(data.planning)?undefined:'2 2'}/><path d="M-60 -21H-113" stroke={farmIsOpen(data.planning)?'#e5d5ad':'#d3b681'} strokeWidth="3.6" strokeDasharray={farmIsOpen(data.planning)?undefined:'3 2'}/><Tractor x={-91-7*unit} y={-10-7*unit} width={14*unit} height={14*unit} color="#586d49"/>{!farmIsOpen(data.planning)&&<LockKeyhole x={FARM_GATE.x-5*unit} y={FARM_GATE.z-6*unit} width={10*unit} height={12*unit} color="#796041"/>}</g>
@@ -50,9 +47,7 @@ export default function MiniMap({data,getPosition,onLook}:{data:TownState;getPos
     <circle cx={position.x} cy={position.z} r={4.5*unit} fill="#fffbea" stroke="#244b67" strokeWidth={2*unit}><title>You</title></circle>
     <circle cx={position.x} cy={position.z} r={1.5*unit} fill="#244b67"/>
    </svg>
-   <p className="minimap-look-hint" id="minimap-look-hint">Click or tap the map to look around.</p>
-   {parcel&&<p className="minimap-look-hint">38 homes today · new route at midnight UTC</p>}{route&&<div className="minimap-status"><span className="delivered"><Marker size={15}/><Check size={12}/> {paper||parcel?'Delivered':'Watered'}</span><span><Marker size={15}/> {paper||parcel?'Waiting':'Needs water'}</span><strong>{count}/{stops.length} {paper||parcel?'delivered':'beds watered'}</strong></div>}
-   <div className="minimap-zoom"><button className="secondary-button" aria-label="Zoom minimap out" disabled={level===0} onClick={()=>setLevel(v=>Math.max(0,v-1))}><Minus size={18}/></button><button className="secondary-button minimap-fit" onClick={()=>setLevel(0)} aria-label="Show whole town on minimap">{zoom===1?'Whole town':`${zoom}× · Fit town`}</button><button className="secondary-button" aria-label="Zoom minimap in" disabled={level===ZOOMS.length-1} onClick={()=>setLevel(v=>Math.min(ZOOMS.length-1,v+1))}><Plus size={18}/></button></div>
-  </div>
+   <span className="sr-only" id="minimap-look-hint">Click or tap the map to look around. Open Map controls for zoom and camera options.</span>
+   {route&&<span className="minimap-route-count" title={paper||parcel?'Green: delivered. Gray: waiting.':'Green: watered. Gray: needs water.'}>{count}/{stops.length}</span>}
  </section>;
 }
