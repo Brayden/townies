@@ -1,5 +1,7 @@
 # Townies
 
+The personal Cloudflare beta now has an account home screen with email/password signup, login, and logout. See [Accounts and Cloudflare deployment](docs/accounts-cloudflare.md) for the separate beta database, local setup, deployment commands, validation, and remaining account-recovery work. The Sites instructions below describe the original host.
+
 An original Three.js town game with an angled orthographic camera and responsive desktop and touch controls. This first playable edition implements the cooperative foundation of the gameplay design in the parent `design` directory.
 
 ## Playable now

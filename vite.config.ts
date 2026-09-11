@@ -8,6 +8,7 @@ const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   '00000000-0000-4000-8000-000000000000';
 
 const { d1, r2 } = hostingConfig;
+const standalone = process.env.TOWNIES_DEPLOY_TARGET === 'cloudflare';
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
@@ -15,6 +16,7 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 const localBindingConfig = {
   main: 'vinext/server/fetch-handler',
   compatibility_flags: ['nodejs_compat'],
+  vars: { TOWNIES_AUTH_MODE: 'sites' },
   d1_databases: d1
     ? [
         {
@@ -51,10 +53,10 @@ export default defineConfig(async () => {
       : undefined,
     plugins: [
       vinext(),
-      sites(),
+      ...(!standalone ? [sites()] : []),
       cloudflare({
         viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] },
-        config: localBindingConfig,
+        ...(standalone ? {configPath:'wrangler.cloudflare.json'} : {config:localBindingConfig}),
       }),
     ],
   };
