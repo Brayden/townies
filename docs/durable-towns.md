@@ -66,3 +66,8 @@ The initial cutover used HTTP polling. The subsequent WebSocket release keeps th
 ## WebSocket release verification
 
 Cloudflare version `da3f9d64-8ef9-4de3-ba3e-520a73cf1d64` passed live verification on September 11, 2026 (UTC): two authenticated clients in an isolated private QA town exchanged movement and chat, received separate private state, reconnected to saved progress, and disconnected when their sessions were revoked. One observed movement round trip was 105 ms; this is a single smoke-test observation, not a latency guarantee or load-test result. Local validation also passed type checking, the production build, patch tests, the real socket/client harness, and the existing account and durable-town regression suites. The temporary QA directory records and accounts are removed after verification; their unlisted object storage follows the same retention caveat as the initial cutover fixtures.
+
+
+## Permanent domain and Worker name
+
+The Worker is now `townies` at https://townies.town. It was renamed through Cloudflare’s Worker edit API, keeping immutable Worker ID `ebe7cb483fa54465835b611e5fa124c6`. The authoritative namespaces remain `52ba3f75e2da4b9fa41bd320a6710b9e` (`Town`) and `8c048c65f9f54bdb839fbb6323765597` (`ResidentCoordinator`). Their original display labels still contain `townies-beta`, but their class names, IDs, migrations, and stored data are unchanged. No class-transfer or new-namespace migration was performed. Local test harnesses now use the renamed `townies-Town` emulator directory. See the account guide for the custom-domain transition and verification.

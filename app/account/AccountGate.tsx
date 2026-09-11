@@ -15,7 +15,7 @@ export default function AccountGate({children}:{children:ReactNode}){
  return <main className="account-home">
   <div className="account-town" aria-hidden="true" inert><TownScene enabled={false} onReady={api=>api.overview()}/></div>
   <div className="account-shade"/>
-  <header className="account-brand"><span className="wordmark">townies<span>.</span></span><span className="account-beta">Friends beta</span></header>
+  <header className="account-brand"><span className="wordmark">townies<span>.</span></span></header>
   <div className="account-layout"><section className="account-intro"><span className="account-eyebrow"><Leaf size={17}/>A little town. A shared story.</span><h1>Your place<br/>in the neighborhood.</h1><p>Make a home, find your calling, and build a town worth coming back to—with friends.</p></section>
   <section className="account-card paper" aria-label="Your Townies account">
    {checking?<div className="account-loading" role="status"><LoaderCircle className="animate-spin" size={24}/>Getting your front door ready…</div>:<>

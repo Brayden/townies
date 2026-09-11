@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "townies-beta",
+  "name": "townies",
   "account_id": "448b660e519f2aa8f8fbcb5cb6ff98af",
   "main": "worker.ts",
   "compatibility_date": "2026-05-15",
@@ -14,7 +14,7 @@
   },
   "vars": {
     "TOWNIES_AUTH_MODE": "account",
-    "BETTER_AUTH_URL": "https://townies-beta.brayden-wilmoth.workers.dev",
+    "BETTER_AUTH_URL": "https://townies.town",
     "TOWNIES_MAINTENANCE": "false"
   },
   "d1_databases": [
@@ -44,6 +44,13 @@
         "Town",
         "ResidentCoordinator"
       ]
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "townies.town",
+      "custom_domain": true,
+      "zone_id": "f07022ee79fb2809ebe722cae18401d0"
     }
   ]
 }

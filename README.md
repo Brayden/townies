@@ -2,7 +2,7 @@
 
 Town simulation now uses one SQLite-backed Durable Object per town, with a per-account coordinator for sessions and recoverable moves. See [Durable towns](docs/durable-towns.md) for the storage boundary, migration, recovery, and tests. The default development/build target is your personal Cloudflare deployment. Players connect directly to their town over authenticated WebSockets; see the linked guide for the transport protocol and local production-runtime tests.
 
-The personal Cloudflare beta now has an account home screen with email/password signup, login, and logout. See [Accounts and Cloudflare deployment](docs/accounts-cloudflare.md) for the separate beta database, local setup, deployment commands, validation, and remaining account-recovery work. The Sites instructions below describe the original host.
+Townies at [townies.town](https://townies.town) has an account home screen with email/password signup, login, and logout. See [Accounts and Cloudflare deployment](docs/accounts-cloudflare.md) for the existing Cloudflare database, local setup, deployment commands, validation, and remaining account-recovery work. The Sites instructions below describe the original host.
 
 An original Three.js town game with an angled orthographic camera and responsive desktop and touch controls. This first playable edition implements the cooperative foundation of the gameplay design in the parent `design` directory.
 

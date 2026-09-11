@@ -7,7 +7,7 @@ if(!/^http:\/\/(localhost|127\.0\.0\.1):/.test(base))throw new Error('Local test
 const root=process.env.TOWNIES_STATE_DIR??'.wrangler/state/v3';
 function database(folder,predicate){for(const file of readdirSync(folder).filter(f=>f.endsWith('.sqlite')&&f!=='metadata.sqlite')){const db=new DatabaseSync(`${folder}/${file}`);try{if(predicate(db))return db}catch{}db.close()}throw new Error(`Test database not found in ${folder}`)}
 const d1=database(root+'/d1/miniflare-D1DatabaseObject',d=>d.prepare("SELECT 1 FROM sqlite_master WHERE name='auth_users'").get());
-function townDB(id){return database(root+'/do/townies-beta-Town',d=>d.prepare("SELECT 1 FROM _meta WHERE key='town' AND value=?").get(id))}
+function townDB(id){return database(root+'/do/townies-Town',d=>d.prepare("SELECT 1 FROM _meta WHERE key='town' AND value=?").get(id))}
 const stamp=Date.now();
 function client(name){const cookies=new Map();return {cookies,name,async api(path='/api/game',body){const r=await fetch(base+path,{method:body?'POST':'GET',headers:{Origin:base,Cookie:[...cookies].map(([k,v])=>`${k}=${v}`).join('; '),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});for(const line of r.headers.getSetCookie()){const part=line.split(';')[0],i=part.indexOf('=');cookies.set(part.slice(0,i),part.slice(i+1))}return {status:r.status,data:await r.json(),headers:r.headers}},async ok(body){const r=await this.api('/api/game',body);assert.equal(r.status,200,JSON.stringify(r.data));assert.equal(r.headers.get('x-townies-storage'),'durable-object');return r.data}}}
 const [a,b,c]=['Alder','Birch','Clover'].map(client);
