@@ -8,6 +8,7 @@ const {chromium}=await import(process.env.PLAYWRIGHT_MODULE??'/Users/brayden/.ca
 const directory='outputs/graphics-qa';await mkdir(directory,{recursive:true});
 await build({stdin:{contents:`
 import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';
+import * as graphics from './app/game/townRenderer';import * as THREE from 'three';window.graphicsTest={...graphics,THREE};
 import TownScene from './app/game/TownScene';import AccountGate from './app/account/AccountGate';
 const root=createRoot(document.getElementById('root'));let key=0;window.readyCount=0;window.unavailableCount=0;
 window.account=()=>flushSync(()=>root.render(<AccountGate><p>Signed in</p></AccountGate>));
@@ -103,16 +104,37 @@ try{
  await page.waitForFunction(()=>window.contexts.every(ctx=>ctx.isContextLost()));
 
  const mobile=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});
+ await mobile.addInitScript(()=>localStorage.setItem('townies-light-graphics','1'));
  await mobile.goto(`http://127.0.0.1:${server.address().port}`);await mobile.waitForFunction(()=>window.readyCount===1);
  const mobileGraphics=await mobile.evaluate(()=>{const canvas=document.querySelector('canvas');return {antialias:canvas.getContext('webgl2').getContextAttributes().antialias,pixels:canvas.width*canvas.height,width:canvas.width,height:canvas.height}});
- assert.equal(mobileGraphics.antialias,false);assert.equal(mobileGraphics.width,780);assert.equal(mobileGraphics.height,1688);assert.ok(mobileGraphics.pixels<=2000000);
+ assert.equal(mobileGraphics.antialias,true);assert.equal(mobileGraphics.width,780);assert.equal(mobileGraphics.height,1688);assert.ok(mobileGraphics.pixels<=3000000);
  await mobile.setViewportSize({width:844,height:390});
  await mobile.waitForFunction(()=>{const c=document.querySelector('canvas');return c.clientWidth===844&&c.width===c.clientWidth*2&&c.height===c.clientHeight*2});
  await mobile.setViewportSize({width:1366,height:1024});
- await mobile.waitForFunction(()=>{const c=document.querySelector('canvas');return c.clientWidth===1366&&c.width>1366&&c.width*c.height<=2000000});
- await mobile.evaluate(()=>window.unmount());await mobile.close();
- console.log('PASS: high-DPI phones render at 2× resolution in both orientations; large touch screens stay within the pixel budget without multisampling.');
+ await mobile.waitForFunction(()=>{const c=document.querySelector('canvas');return c.clientWidth===1366&&c.width>1366&&c.width*c.height<=3000000});
+ await mobile.evaluate(()=>window.unmount());
+ console.log('PASS: high-DPI phones render at 2× resolution in both orientations; large touch screens stay within the high-quality pixel budget with antialiasing.');
 
+
+ // Exercise the adaptive policy against an actual WebGL renderer without frame-timing flakiness.
+ const adaptive=await mobile.evaluate(()=>{
+   localStorage.clear();const {THREE,createTownRenderer,resizeTownRenderer,updateTownGraphics,releaseTownRenderer}=window.graphicsTest;
+   const {renderer}=createTownRenderer(),canvas=renderer.domElement,scene=new THREE.Scene();
+   const light=new THREE.DirectionalLight();light.position.set(5,6,5);light.castShadow=true;scene.add(light);
+   const geometry=new THREE.BoxGeometry(),material=new THREE.MeshStandardMaterial(),box=new THREE.Mesh(geometry,material);box.castShadow=box.receiveShadow=true;scene.add(box);
+   const camera=new THREE.PerspectiveCamera();camera.position.set(0,4,7);camera.lookAt(0,0,0);
+   resizeTownRenderer(renderer,390,844);let time=performance.now();
+   const advance=(duration,delta)=>{const end=time+duration;while(time<end){time+=delta;updateTownGraphics(renderer,scene,time)}};
+   advance(180000,1000/60);renderer.render(scene,camera);const high=renderer.shadowMap.enabled;
+   advance(6000,40);renderer.render(scene,camera);const balanced=!renderer.shadowMap.enabled&&renderer.getPixelRatio()===2;
+   advance(14000,40);const lowered=renderer.getPixelRatio()<2;
+   advance(210000,1000/60);renderer.render(scene,camera);const restored=renderer.shadowMap.enabled&&renderer.getPixelRatio()===2;
+   const same=canvas===renderer.domElement&&!renderer.getContext().isContextLost();geometry.dispose();material.dispose();light.shadow.dispose();releaseTownRenderer(renderer);
+   return {high,balanced,lowered,restored,same};
+ });
+ await mobile.close();
+ assert.deepEqual(adaptive,{high:true,balanced:true,lowered:true,restored:true,same:true});
+ console.log('PASS: measured pressure removes shadows before reducing resolution; quality returns without replacing the graphics context.');
  assert.deepEqual(errors,[]);
  console.log('PASS: total startup failure is recoverable on mobile; retry clears stale errors, and unmount leaves no live context.');
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve))}

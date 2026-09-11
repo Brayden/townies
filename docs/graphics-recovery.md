@@ -1,28 +1,38 @@
-# Graphics startup and recovery
+# Adaptive graphics and recovery
 
-Reports of “The 3D view couldn’t start” come from failure to create the WebGL 2 renderer, before town geometry is constructed. We do not yet have diagnostics from affected devices, so this change mitigates resource pressure and transient failures without asserting one root cause for every report. Three r186 requires WebGL 2; disabling or blocking that capability cannot be fixed by switching quality settings.
+The game starts at its highest quality preset on desktop and mobile. It no longer demotes devices based on touch input, a mobile user agent, reported memory, or the legacy `townies-light-graphics` flag. There is no browser API that reliably identifies the highest sustainable graphics quality before running the scene, so the game measures foreground frame pacing and adjusts during play.
 
-The account screen now uses `public/town-welcome.jpg`, a still captured from the actual town, instead of building a full decorative town and a second renderer after login. Login remains usable when WebGL is unavailable.
+## Quality levels
 
-`townRenderer.ts` shares graphics settings between outdoor and indoor views:
+| Level | Resolution cap | Render-pixel budget | Shadows |
+| --- | --- | --- | --- |
+| High | 2× device-independent resolution | 3 million | On |
+| Balanced | 2× | 2 million | Off |
+| Light | 1.5× | 1.5 million | Off |
+| Low | 1× | 1 million | Off |
 
-- Touch-first devices, mobile user agents, devices reporting at most 4 GB memory, and devices with a saved lightweight recovery preference start without multisampling or shadows, at pixel ratio up to 2 for clear edges on high-density phones.
-- Other devices try the standard renderer and immediately fall back to default-power lightweight graphics if creation fails. Successful fallback and recovery save a local device preference.
-- Framebuffers are capped at 2 million pixels in light mode and 3 million in standard mode, including after viewport changes. Zero-size containers are clamped before sizing or camera aspect calculations outdoors.
-- Creation checks reject missing/already-lost contexts. Failed attempts and unmounted renderers explicitly release their WebGL contexts. Interior teardown also disposes the shadow render target.
+Actual resolution also respects device pixel ratio and WebGL texture/viewport limits. The first downgrade removes shadow rendering and releases its targets while preserving phone sharpness. Lower resolutions are used only when poor performance persists. Quality changes resize the existing framebuffer and update materials without rebuilding the town, camera, player, or connection. Context antialiasing is immutable: high startup requests it, while a context created by the compatibility fallback retains its no-antialiasing setting even if quality later rises.
 
-TownScene gives refused startup attempts two delayed retries (800 ms, then 1,600 ms). Permanent failure ends in a usable recovery panel; manual retry starts a fresh bounded attempt sequence. Effect cleanup cancels pending retry timers.
+`AdaptiveGraphics` ignores the initial eight seconds, background tabs, long sleep/resume gaps, and the first eight seconds after resizing or a quality change. Two consecutive two-second windows averaging more than 36 ms per frame (below about 28 FPS) lower quality by one step. A stable 30 FPS phone power-saving cap does not by itself reduce quality. An isolated stutter does not meet the sustained-slowdown threshold.
 
-On context loss the scene stops movement and detaches its movement API. Native restoration resumes with shadows disabled and the lighter pixel budget. If native restoration has not occurred within 2.5 seconds, the scene makes one automatic lightweight restart per mount/manual retry. A further loss waits for native restoration or an explicit retry, avoiding an endless restart loop. Existing camera continuity survives rebuilding. The error panel offers selectable browser/viewport/context-creation details to share with support; these contain no account credentials or town data and are not automatically transmitted.
+Quality increases one step after at least 30 seconds of steady headroom (average frame time below 18.5 ms), with at least 90 seconds since a downgrade or recovery. Further upward probes wait at least 30 seconds. A failed upward probe downgrades again and restarts the longer cooldown, limiting oscillation. Performance is affected by CPU load and browser scheduling as well as GPU load; this is a conservative pacing heuristic, not a GPU benchmark. It cannot guarantee a frame rate.
 
-Both renderers isolate their imperative canvas host from React error content. Removing an error message cannot remove a newly created canvas.
+The chosen level carries through scene rebuilds and room transitions within the page session. A fresh page starts high except after a graphics failure recorded in the last 15 minutes: that device starts Balanced/default-power for recovery, then can gradually probe higher quality. This timestamp replaces the previous permanent low-quality flag. Ordinary frame-rate adjustments are not stored permanently.
+
+## Context startup and loss
+
+`townRenderer.ts` owns renderer creation, quality, framebuffer sizing, and context release for both outdoor and indoor views. High-quality startup first requests an antialiased context, then tries a default-power context without antialiasing if creation fails. Already-lost or missing contexts are rejected, and failed attempts release any context allocated. Three r186 requires WebGL 2; unavailable or blocked WebGL 2 cannot be solved by a lower preset.
+
+Outdoor startup has two delayed retries (800 ms, then 1,600 ms). Permanent failure ends in a recovery panel; manual retry starts a new bounded sequence. Cleanup cancels pending timers. Context loss stops outdoor movement and detaches its API. Native restoration returns at Balanced or the current lower quality. If restoration does not occur within 2.5 seconds, the outdoor scene makes one automatic restart per mount/manual retry. A further loss waits for native restoration or explicit retry, avoiding endless restarts. Interior simulation pauses while its context is lost and native restoration applies the same conservative quality policy.
+
+Both renderers isolate the imperative canvas from React error content and explicitly release graphics contexts on unmount. Shadow targets and scene resources are disposed. The login page uses `public/town-welcome.jpg` instead of creating a second decorative WebGL town; it remains usable without WebGL.
+
+The outdoor error panel includes selectable browser, viewport and context-creation details. They contain no account credentials or town data and are not automatically transmitted.
 
 ## Verification
 
-`node tests/graphics-browser.mjs` runs isolated browser checks without accounts or server data: forced high-performance rejection, captured creation diagnostics, native context restoration, repeated scene remounts and context release, bounded permanent failure, temporary failure with automatic delayed success, automatic restart after context loss, cancellation on unmount, zero-context login, manual mobile-sized retry, and fresh touch/high-DPI defaults. It also captures the clean town still into ignored test output. The public image is deliberately updated separately.
+- `node tests/adaptive-graphics.mjs`: deterministic pacing scenarios for startup warm-up, gradual downgrades, minimum quality, upward recovery/cooldowns, hidden tabs, steady 30 FPS, isolated stutters, and context recovery.
+- `node tests/graphics-browser.mjs`: actual WebGL factory fallback, bounded startup failure and delayed success, context loss/restoration/restart, teardown, zero-context login, high-quality phone defaults despite the old flag, orientation/large-screen sizing, and quality adjustments without context replacement.
+- `node tests/camera-browser.mjs`: camera continuity, scenery rebuilds, and automatic graphics recovery.
 
-`node tests/camera-browser.mjs` checks pan/orbit/zoom continuity, movement corrections, scenery changes, focus/reset behavior, and camera continuity through an automatic graphics restart. Override `PLAYWRIGHT_MODULE` and `CHROME_PATH` to run on other local installations.
-
-These are headless Chromium tests using software graphics with the GPU blocklist bypassed. Touch/viewport emulation is not a physical-phone or social-app-browser test; driver-specific compatibility remains unverified. If failures continue, collect the error panel details and the affected browser/device before narrowing the cause further.
-
-The initial light-mode cap of 1 CSS pixel per render pixel made high-density phones visibly pixelated. Light mode now uses up to 2× resolution within its 2-million-pixel budget, retaining default-power context creation, no multisampling/shadows, and the existing retry/recovery behavior. Browser checks verify portrait and landscape phone resolution plus the large-touch-screen budget.
+Browser checks run headless Chromium with software graphics and the GPU blocklist bypassed. Touch emulation is not a physical-phone or social-app-browser test; specific driver behavior remains unverified. Initial user reports were context-creation failures before town geometry was constructed. Without affected-device diagnostics, no single cause is established for all reports.
