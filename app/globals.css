@@ -175,3 +175,7 @@ body:has(.housing-modal) [data-slot=dialog-overlay]{backdrop-filter:none;backgro
 .town-chat-launch svg{flex-shrink:0;fill:#fffbed80}.town-chat-launch:hover{background:#ffe5a0;box-shadow:0 3px 0 #6b6d4b22,0 5px 20px #263c2730}.town-chat-launch[aria-expanded=true]{background:#3e6349;border-color:#71905a;color:#fffbed}.town-chat-launch[aria-expanded=true] svg{fill:#fffbed20}.town-chat-launch:focus-visible{outline:3px solid #fffbed;outline-offset:3px}
 @media(max-width:700px){.game .hud-tools{gap:8px}.town-chat-launch{min-height:44px;padding:9px 13px;border-radius:14px}}
 @media(prefers-reduced-motion:reduce){.town-chat-launch{transition:none}}
+
+.world-error{inset:auto;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;box-shadow:0 10px 40px #253b3d30;touch-action:auto;color:#344c30}.world-error strong{font-size:20px;line-height:1.25}.world-error p{font-size:15px;line-height:1.5;margin:12px 0}.world-error small{display:block;font-size:13px;line-height:1.5;margin-top:12px}.world-error button{min-height:44px}.world-error button:focus-visible{outline:3px solid #5b8978;outline-offset:3px}
+
+.town-canvas{position:absolute;inset:0}
