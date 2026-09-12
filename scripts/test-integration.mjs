@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile, open } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
+import { stripVTControlCharacters } from 'node:util';
 function run(command, args, env = process.env) {
   const r = spawnSync(command, args, { stdio: 'inherit', env });
   if (r.status !== 0) throw Error(`${command} failed (${r.status})`);
@@ -96,8 +97,9 @@ try {
 } catch (error) {
   // Only runner-created synthetic accounts exist here. Redact token-like values
   // before printing diagnostics to public CI; keep the full log local/ignored.
-  const diagnostics = (await readFile(dir + '/server.log', 'utf8'))
-    .replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')
+  const diagnostics = stripVTControlCharacters(
+    await readFile(dir + '/server.log', 'utf8'),
+  )
     .split('\n')
     .slice(-160)
     .join('\n')
