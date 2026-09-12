@@ -29,3 +29,7 @@ The standalone legacy `mowing-route.mjs` and `*-api.mjs` fixtures other than `ac
 Run the deterministic suite and typecheck for every code change. Run browser checks when changing input, HUD, graphics or client synchronization. Run integration checks for identity, storage, multiplayer, migrations, purchases, permissions or server changes. Test touch behavior and low graphics settings when relevant; headless tests do not replace device testing.
 
 CI must never receive production credentials on a public PR. Screenshots are optional diagnostic artifacts, not required for every change. Existing camera screenshots can be enabled explicitly with `TOWNIES_SCREENSHOTS=1`.
+
+## Local proxy diagnostics
+
+The integration runner prints sanitized local Worker diagnostics on failure. Cloudflare's Linux development proxy can lose a following request when an earlier response abandons a request body ([upstream report](https://github.com/cloudflare/workers-sdk/issues/15203)). Account requests keep a 16 KiB body limit and finish that bounded read before returning an origin rejection; the rejection still occurs before session revocation or authentication. CI checks that a rejected cross-origin logout leaves the session intact and that the next valid logout succeeds.

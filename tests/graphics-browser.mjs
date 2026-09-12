@@ -161,7 +161,8 @@ try {
       box.y >= 0 &&
       box.y + box.height <= 844,
   );
-  await page.screenshot({ path: directory + '/recovery-mobile.png' });
+  if (process.env.TOWNIES_SCREENSHOTS === '1')
+    await page.screenshot({ path: directory + '/recovery-mobile.png' });
   const before = await page.evaluate(() => window.readyCount);
   await page.evaluate(() => (window.graphicsFailure = ''));
   await page
