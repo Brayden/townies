@@ -1,14 +1,16 @@
+import {communityBuilding} from './communityBuildings.ts';
+import {hasCommunitySquare} from './communitySquare.ts';
 import * as THREE from 'three';
 import {TERRITORIES,PLOTS,FERRY_STOPS,plotOwned,plotOccupied,locationOf,nodeById,townBuildings,expansionRoads,type PlanningState} from './charters.ts';
 import type {Kit} from './civicScenery.ts';
 export function charterScenery(k:Kit,s:PlanningState){const {box,ball,cylinder,roof,bench,flower}=k,root=new THREE.Group();
  for(const t of TERRITORIES.filter(t=>s.territories.includes(t.id))){box(t.width,.65,t.depth,'#a7ab79',t.x,-.35,t.z,root);box(t.width,.08,t.depth,'#9abb72',t.x,.08,t.z,root);for(const dx of [-t.width/2+.7,t.width/2-.7])for(let z=t.z-t.depth/2+2;z<t.z+t.depth/2-1;z+=6){cylinder(.13,.8,'#9f8057',t.x+dx,.5,z,root);ball(.55,'#7d9d58',t.x+dx,1.2,z,root)}}
  for(const r of expansionRoads(s))box(r.width,.045,r.depth,'#ddcca7',r.x,.17,r.z,root);
- for(const p of PLOTS.filter(p=>plotOwned(p,s)&&!plotOccupied(p.id,s))){box(p.width-.3,.035,p.depth-.3,'#b1c984',p.x,.15,p.z,root);for(const dx of [-p.width/2+.4,p.width/2-.4])for(const dz of [-p.depth/2+.4,p.depth/2-.4]){box(.13,.65,.13,'#b39261',p.x+dx,.46,p.z+dz,root);box(.35,.14,.35,'#ece0ac',p.x+dx,.77,p.z+dz,root)}}
+ for(const p of PLOTS.filter(p=>plotOwned(p,s)&&!(hasCommunitySquare(s)&&['library-site','market-site'].includes(p.id))&&!plotOccupied(p.id,s))){box(p.width-.3,.035,p.depth-.3,'#b1c984',p.x,.15,p.z,root);for(const dx of [-p.width/2+.4,p.width/2-.4])for(const dz of [-p.depth/2+.4,p.depth/2-.4]){box(.13,.65,.13,'#b39261',p.x+dx,.46,p.z+dz,root);box(.35,.14,.35,'#ece0ac',p.x+dx,.77,p.z+dz,root)}}
 
  const buildings=townBuildings(s);
  for(const i of s.institutions){if(i.node==='root'&&i.id!=='harbor')continue;const b=buildings.find(b=>b.id===i.id)!;root.add(buildingModel(k,b,nodeById(i.node)?.style??'harbor'));}
- for(const building of s.buildings){const p=locationOf(building),b=buildings.find(b=>b.id===`site-${building.plot}`)??{id:'garden',...p,name:'Civic garden',width:7,depth:4,height:1,color:'#b1c984',roof:'#719088',action:'town'};root.add(buildingModel(k,b,building.kind==='pets'?'pets':building.kind==='garden'?'garden':building.kind==='food'?'market':'workshop'));}
+ for(const building of s.buildings){const p=locationOf(building),b=buildings.find(b=>b.id===`site-${building.plot}`)??{id:'garden',...p,name:'Civic garden',width:7,depth:4,height:1,color:'#b1c984',roof:'#719088',action:'town'};root.add(buildingModel(k,b,communityBuilding(building.kind)?.style??'workshop'));}
  if(s.territories.includes('island'))for(const f of FERRY_STOPS){box(3,.2,2,'#bc956c',f.x,.32,f.z,root);for(const x of [-1.4,1.4])box(.13,1.4,.13,'#917958',f.x+x,.9,f.z+.7,root);box(2.2,.8,.16,'#7b9c96',f.x,1.7,f.z+.7,root);const boat=ball(1,'#c7a16b',f.x,0,f.z+2.1,root);boat.scale.set(1.5,.28,.7);box(1.4,.75,.8,'#f1e4bc',f.x,.65,f.z+2.1,root);roof(1.8,1,.45,'#7899a2',f.x,1.03,f.z+2.1,root);}
  return root;
 }

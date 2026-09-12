@@ -41,13 +41,13 @@ export class ResidentCoordinator extends DurableObject<Cloudflare.Env>{
   let town=pending?.town;
   const name=String(b.name??'').trim().slice(0,24);if(name.length<2)throw new Error('Please enter a name with at least two letters.');if(hasProfanity(name))throw new Error(NAME_LANGUAGE_ERROR);if(b.mode==='private'&&hasProfanity(String(b.townName||`${name}’s Hollow`).trim().slice(0,32)))throw new Error(TOWN_LANGUAGE_ERROR);
   if(!town){if(b.mode==='private'){
-   town=crypto.randomUUID();await this.env.DB.prepare('INSERT INTO towns(id,name,invite,private,created) VALUES(?,?,?,?,?)').bind(town,String(b.townName||`${name}’s Hollow`).trim().slice(0,32),crypto.randomUUID().replaceAll('-','').slice(0,16).toUpperCase(),1,Date.now()).run();
+   town=crypto.randomUUID();await this.env.DB.prepare('INSERT INTO towns(id,name,invite,private,created,square_version) VALUES(?,?,?,?,?,1)').bind(town,String(b.townName||`${name}’s Hollow`).trim().slice(0,32),crypto.randomUUID().replaceAll('-','').slice(0,16).toUpperCase(),1,Date.now()).run();
   }else if(b.mode==='key'){
    const found=await this.env.DB.prepare('SELECT id FROM towns WHERE invite=?').bind(String(b.key??'').trim().toUpperCase()).first<{id:string}>();if(!found)throw new Error('No town has that invitation key.');town=found.id;
   }else{
-   await this.env.DB.prepare("INSERT OR IGNORE INTO towns(id,name,private,created) VALUES('willowbrook','Willowbrook',0,?)").bind(Date.now()).run();
+   await this.env.DB.prepare("INSERT OR IGNORE INTO towns(id,name,private,created,square_version) VALUES('willowbrook','Willowbrook',0,?,1)").bind(Date.now()).run();
    const found=await this.env.DB.prepare('SELECT t.id FROM towns t LEFT JOIN residents r ON r.town_id=t.id WHERE t.private=0 GROUP BY t.id HAVING COUNT(r.id)<50 ORDER BY COUNT(r.id) DESC,t.created LIMIT 1').first<{id:string}>();town=found?.id;
-   if(!town){town=crypto.randomUUID();await this.env.DB.prepare('INSERT INTO towns(id,name,private,created) VALUES(?,?,0,?)').bind(town,'Willowbrook '+Date.now().toString().slice(-4),Date.now()).run()}
+   if(!town){town=crypto.randomUUID();await this.env.DB.prepare('INSERT INTO towns(id,name,private,created,square_version) VALUES(?,?,0,?,1)').bind(town,'Willowbrook '+Date.now().toString().slice(-4),Date.now()).run()}
   }this.ctx.storage.kv.put('joining',{town});}
   const identityHash=await hash(identity);
   let row=pending?.row??await this.env.DB.prepare('SELECT * FROM residents WHERE token_hash=?').bind(identityHash).first<Record<string,any>>();
