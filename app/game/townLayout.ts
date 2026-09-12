@@ -28,7 +28,8 @@ export const ROADS=[
  ...[-58.5,-23,22,35,58.5].map(x=>({x,z:-1,width:2.5,depth:108})),
  ...[31,41].map(z=>({x:0,z,width:120,depth:2.4})),
  ...[-45,-35,-25].flatMap(z=>[{x:-34,z,width:21,depth:2.4},{x:47,z,width:24,depth:2.4}]),
- ...[-45,-25].map(z=>({x:0,z,width:43,depth:2.4})),
+ // Keep the school frontage green above the main street at z=-21.
+ {x:0,z:-45,width:43,depth:2.4},
  {x:12,z:-35,width:18,depth:2.4},
  {x:-44,z:-37,width:2.4,depth:30},
  {x:-21,z:36,width:2.4,depth:28},
