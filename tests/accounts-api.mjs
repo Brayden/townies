@@ -110,7 +110,8 @@ assert.equal(
   403,
 );
 const oldCookie = [...a.cookies].map(([k, v]) => `${k}=${v}`).join('; ');
-assert.equal((await a.api('/api/auth/sign-out', {})).status, 200);
+const signedOut = await a.api('/api/auth/sign-out', {});
+assert.equal(signedOut.status, 200, JSON.stringify(signedOut.data));
 assert.equal((await a.api('/api/game')).status, 401);
 assert.equal(
   (await a.api('/api/game', null, { Cookie: oldCookie })).status,

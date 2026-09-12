@@ -93,6 +93,18 @@ try {
   console.log(
     'All account, town, migration, WebSocket and passkey integration suites passed.',
   );
+} catch (error) {
+  // Only runner-created synthetic accounts exist here. Redact token-like values
+  // before printing diagnostics to public CI; keep the full log local/ignored.
+  const diagnostics = (await readFile(dir + '/server.log', 'utf8'))
+    .replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')
+    .split('\n')
+    .slice(-160)
+    .join('\n')
+    .replace(/[A-Za-z0-9_+/=-]{24,}/g, '[redacted]')
+    .replace(/[^\s@]+@[^\s@]+/g, '[email]');
+  console.error('Sanitized local Worker diagnostics:\n' + diagnostics);
+  throw error;
 } finally {
   try {
     if (process.platform === 'win32') server.kill();
