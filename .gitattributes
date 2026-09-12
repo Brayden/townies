@@ -1,0 +1,3 @@
+# Preserve upstream notices; collapse generated/vendored text in code review.
+public/third-party-licenses.txt -whitespace linguist-generated=true
+third-party/licenses/*.txt -whitespace linguist-vendored=true

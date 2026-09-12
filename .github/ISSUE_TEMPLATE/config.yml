@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/Brayden/townies/security/advisories/new
+    about: Please do not disclose vulnerabilities or player data in a public issue.

@@ -1,32 +1,262 @@
 // Game fixtures use town SQLite migrations; 0016+ are shared-directory migrations.
 import assert from 'node:assert/strict';
-import {DatabaseSync} from 'node:sqlite';
-import {readFileSync,readdirSync} from 'node:fs';
-import {movingOptions,moveTown} from '../db/moving.ts';
-import {readMayor,readElection,electionAction} from '../db/elections.ts';
-const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')&&Number(f.slice(0,4))<=15).sort())sql.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
-const d={prepare(query){const stmt=sql.prepare(query);let args=[];return{bind(...a){args=a;return this},async first(){return stmt.get(...args)??null},async all(){return{results:stmt.all(...args)}},execute(){return{meta:{changes:Number(stmt.run(...args).changes)}}},async run(){return this.execute()}}},async batch(statements){sql.exec('BEGIN');try{const results=statements.map(s=>s.execute());sql.exec('COMMIT');return results}catch(e){sql.exec('ROLLBACK');throw e}}};
+import { DatabaseSync } from 'node:sqlite';
+import { readFileSync, readdirSync } from 'node:fs';
+import { movingOptions, moveTown } from '../db/moving.ts';
+import { readMayor, readElection, electionAction } from '../db/elections.ts';
+const sql = new DatabaseSync(':memory:');
+sql.exec('PRAGMA foreign_keys=ON');
+for (const f of readdirSync(new URL('../drizzle/', import.meta.url))
+  .filter((f) => f.endsWith('.sql') && Number(f.slice(0, 4)) <= 15)
+  .sort())
+  sql.exec(readFileSync(new URL('../drizzle/' + f, import.meta.url), 'utf8'));
+const d = {
+  prepare(query) {
+    const stmt = sql.prepare(query);
+    let args = [];
+    return {
+      bind(...a) {
+        args = a;
+        return this;
+      },
+      async first() {
+        return stmt.get(...args) ?? null;
+      },
+      async all() {
+        return { results: stmt.all(...args) };
+      },
+      execute() {
+        return { meta: { changes: Number(stmt.run(...args).changes) } };
+      },
+      async run() {
+        return this.execute();
+      },
+    };
+  },
+  async batch(statements) {
+    sql.exec('BEGIN');
+    try {
+      const results = statements.map((s) => s.execute());
+      sql.exec('COMMIT');
+      return results;
+    } catch (e) {
+      sql.exec('ROLLBACK');
+      throw e;
+    }
+  },
+};
 
-const now=Date.parse('2026-09-10T12:00:00Z');
-sql.exec("INSERT INTO towns(id,name,private,invite,created,treasury,project,farm_funded) VALUES('old','Old Town',0,'OLD',0,900,40,500),('new','New Town',1,'SECRET',1,200,70,1000),('public','Public Town',0,NULL,2,0,0,0),('full','Full Town',0,NULL,3,0,0,0)");
-function add(id,town,home){sql.prepare("INSERT INTO residents(id,token_hash,town_id,name,color,home,job,coins,xp,education,items,house,upkeep_due,shift,mowing,riding,action_target,action_started,seen,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(id,id,town,id,'#fff',home,'mow',900,1234,30,'["bike","hat-top"]','rose-4',now+86400000,'garden',1,1,'bed',now,now,0);}
-add('a','old',0);add('b','old',1);add('host','new',0);for(let i=0;i<50;i++)add('full'+i,'full',i);
-const row=id=>sql.prepare('SELECT * FROM residents WHERE id=?').get(id);
-const go=(r,destination,home,key='')=>moveTown(d,r,{fromTown:r.town_id,membership:r.town_joined_at,destination,home,key},now);
-const publicTowns=(await movingOptions(d,row('a'),{mode:'public'},now)).towns;assert.deepEqual(publicTowns.map(t=>t.id),['public']);assert.ok(publicTowns.every(t=>!('invite'in t)));
-assert.equal((await movingOptions(d,row('a'),{destination:'new'},now)).status,404);const preview=await movingOptions(d,row('a'),{key:' secret '},now);assert.equal(preview.destination.id,'new');assert.equal(preview.homes.length,49);assert.ok(!preview.homes.some(h=>h.id===0));assert.equal((await movingOptions(d,row('a'),{destination:'full'},now)).status,409);
-assert.equal((await go(row('a'),'new',1)).status,409);assert.equal((await go(row('a'),'new',0,'SECRET')).status,409);assert.equal((await go(row('a'),'full',0)).status,409);assert.equal(row('a').town_id,'old');
-sql.exec("INSERT INTO election_candidates(town_id,cycle,resident_id,nominated_at) VALUES('old','2026-08','a',1),('old','2026-08','b',2),('old','2026-09','a',1);INSERT INTO election_votes(town_id,cycle,voter_id,candidate_id,cast_at) VALUES('old','2026-08','a','a',1),('old','2026-08','b','a',1);INSERT INTO contributions(town_id,resident_id,day,donated) VALUES('old','a','2026-09-01',75);INSERT INTO work(key,town_id,task,resident_id,started) VALUES('old:task','old','task','a',1)");
-assert.equal((await readMayor(d,'old',now)).id,'a');const before=row('a');assert.equal(await go(before,'new',1,'SECRET'),null);const after=row('a');for(const field of ['id','coins','xp','education','items','house','upkeep_due','job','created','papers','parcels','water','bag'])assert.equal(after[field],before[field],field+' travels unchanged');assert.equal(after.town_id,'new');assert.equal(after.home,1);assert.equal(after.shift,null);assert.equal(after.mowing,0);assert.equal(after.riding,0);assert.equal(after.action_target,null);assert.equal(after.x,0);assert.equal(after.z,6);assert.equal(after.town_joined_at,now);
-assert.equal(sql.prepare("SELECT COUNT(*) AS n FROM residents WHERE town_id='old' AND home=0").get().n,0);assert.equal(sql.prepare("SELECT COUNT(*) AS n FROM work WHERE resident_id='a'").get().n,0);assert.equal(sql.prepare("SELECT donated FROM contributions WHERE town_id='old'").get().donated,75);assert.equal(sql.prepare("SELECT treasury FROM towns WHERE id='old'").get().treasury,900);assert.equal(await readMayor(d,'old',now),null);assert.equal((await readElection(d,row('b'),now)).candidates.length,0);assert.equal((await go(before,'public',0)).status,409,'Stale or duplicate move cannot happen twice');
-assert.equal(await go(row('a'),'old',0),null);assert.equal(await readMayor(d,'old',now),null,'Returning cannot recover an old office');assert.equal((await electionAction(d,row('a'),'nominate','2026-09',null,now)).status,409,'Withdrawn campaign stays withdrawn');
+const now = Date.parse('2026-09-10T12:00:00Z');
+sql.exec(
+  "INSERT INTO towns(id,name,private,invite,created,treasury,project,farm_funded) VALUES('old','Old Town',0,'OLD',0,900,40,500),('new','New Town',1,'SECRET',1,200,70,1000),('public','Public Town',0,NULL,2,0,0,0),('full','Full Town',0,NULL,3,0,0,0)",
+);
+function add(id, town, home) {
+  sql
+    .prepare(
+      'INSERT INTO residents(id,token_hash,town_id,name,color,home,job,coins,xp,education,items,house,upkeep_due,shift,mowing,riding,action_target,action_started,seen,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    )
+    .run(
+      id,
+      id,
+      town,
+      id,
+      '#fff',
+      home,
+      'mow',
+      900,
+      1234,
+      30,
+      '["bike","hat-top"]',
+      'rose-4',
+      now + 86400000,
+      'garden',
+      1,
+      1,
+      'bed',
+      now,
+      now,
+      0,
+    );
+}
+add('a', 'old', 0);
+add('b', 'old', 1);
+add('host', 'new', 0);
+for (let i = 0; i < 50; i++) add('full' + i, 'full', i);
+const row = (id) => sql.prepare('SELECT * FROM residents WHERE id=?').get(id);
+const go = (r, destination, home, key = '') =>
+  moveTown(
+    d,
+    r,
+    {
+      fromTown: r.town_id,
+      membership: r.town_joined_at,
+      destination,
+      home,
+      key,
+    },
+    now,
+  );
+const publicTowns = (await movingOptions(d, row('a'), { mode: 'public' }, now))
+  .towns;
+assert.deepEqual(
+  publicTowns.map((t) => t.id),
+  ['public'],
+);
+assert.ok(publicTowns.every((t) => !('invite' in t)));
+assert.equal(
+  (await movingOptions(d, row('a'), { destination: 'new' }, now)).status,
+  404,
+);
+const preview = await movingOptions(d, row('a'), { key: ' secret ' }, now);
+assert.equal(preview.destination.id, 'new');
+assert.equal(preview.homes.length, 49);
+assert.ok(!preview.homes.some((h) => h.id === 0));
+assert.equal(
+  (await movingOptions(d, row('a'), { destination: 'full' }, now)).status,
+  409,
+);
+assert.equal((await go(row('a'), 'new', 1)).status, 409);
+assert.equal((await go(row('a'), 'new', 0, 'SECRET')).status, 409);
+assert.equal((await go(row('a'), 'full', 0)).status, 409);
+assert.equal(row('a').town_id, 'old');
+sql.exec(
+  "INSERT INTO election_candidates(town_id,cycle,resident_id,nominated_at) VALUES('old','2026-08','a',1),('old','2026-08','b',2),('old','2026-09','a',1);INSERT INTO election_votes(town_id,cycle,voter_id,candidate_id,cast_at) VALUES('old','2026-08','a','a',1),('old','2026-08','b','a',1);INSERT INTO contributions(town_id,resident_id,day,donated) VALUES('old','a','2026-09-01',75);INSERT INTO work(key,town_id,task,resident_id,started) VALUES('old:task','old','task','a',1)",
+);
+assert.equal((await readMayor(d, 'old', now)).id, 'a');
+const before = row('a');
+assert.equal(await go(before, 'new', 1, 'SECRET'), null);
+const after = row('a');
+for (const field of [
+  'id',
+  'coins',
+  'xp',
+  'education',
+  'items',
+  'house',
+  'upkeep_due',
+  'job',
+  'created',
+  'papers',
+  'parcels',
+  'water',
+  'bag',
+])
+  assert.equal(after[field], before[field], field + ' travels unchanged');
+assert.equal(after.town_id, 'new');
+assert.equal(after.home, 1);
+assert.equal(after.shift, null);
+assert.equal(after.mowing, 0);
+assert.equal(after.riding, 0);
+assert.equal(after.action_target, null);
+assert.equal(after.x, 0);
+assert.equal(after.z, 6);
+assert.equal(after.town_joined_at, now);
+assert.equal(
+  sql
+    .prepare(
+      "SELECT COUNT(*) AS n FROM residents WHERE town_id='old' AND home=0",
+    )
+    .get().n,
+  0,
+);
+assert.equal(
+  sql.prepare("SELECT COUNT(*) AS n FROM work WHERE resident_id='a'").get().n,
+  0,
+);
+assert.equal(
+  sql.prepare("SELECT donated FROM contributions WHERE town_id='old'").get()
+    .donated,
+  75,
+);
+assert.equal(
+  sql.prepare("SELECT treasury FROM towns WHERE id='old'").get().treasury,
+  900,
+);
+assert.equal(await readMayor(d, 'old', now), null);
+assert.equal((await readElection(d, row('b'), now)).candidates.length, 0);
+assert.equal(
+  (await go(before, 'public', 0)).status,
+  409,
+  'Stale or duplicate move cannot happen twice',
+);
+assert.equal(await go(row('a'), 'old', 0), null);
+assert.equal(
+  await readMayor(d, 'old', now),
+  null,
+  'Returning cannot recover an old office',
+);
+assert.equal(
+  (await electionAction(d, row('a'), 'nominate', '2026-09', null, now)).status,
+  409,
+  'Withdrawn campaign stays withdrawn',
+);
 // Two residents cannot reserve one house or the final town slot.
-const races=await Promise.all([go(row('a'),'new',2,'SECRET'),go(row('b'),'new',2,'SECRET')]);assert.equal(races.filter(v=>v===null).length,1);assert.equal(races.filter(v=>v?.status===409).length,1);
-sql.exec("DELETE FROM residents WHERE id='full49'");const lastSlot=await Promise.all([go(row('a'),'full',49),go(row('b'),'full',49)]);assert.equal(lastSlot.filter(v=>v===null).length,1);assert.equal(sql.prepare("SELECT COUNT(*) AS n FROM residents WHERE town_id='full'").get().n,50);
+const races = await Promise.all([
+  go(row('a'), 'new', 2, 'SECRET'),
+  go(row('b'), 'new', 2, 'SECRET'),
+]);
+assert.equal(races.filter((v) => v === null).length, 1);
+assert.equal(races.filter((v) => v?.status === 409).length, 1);
+sql.exec("DELETE FROM residents WHERE id='full49'");
+const lastSlot = await Promise.all([
+  go(row('a'), 'full', 49),
+  go(row('b'), 'full', 49),
+]);
+assert.equal(lastSlot.filter((v) => v === null).length, 1);
+assert.equal(
+  sql.prepare("SELECT COUNT(*) AS n FROM residents WHERE town_id='full'").get()
+    .n,
+  50,
+);
 // A migration during voting cannot bring a fresh ballot to a second town.
-const electionNow=Date.parse('2026-09-23T00:00:00Z');const mover=row('host');assert.equal(await moveTown(d,mover,{fromTown:'new',membership:0,destination:'public',home:3},electionNow),null);assert.equal((await readElection(d,row('host'),electionNow)).participationLocked,true);assert.equal((await electionAction(d,row('host'),'nominate','2026-09',null,electionNow)).status,409);assert.equal((await readElection(d,row('host'),Date.parse('2026-10-01T00:00:00Z'))).participationLocked,false);
+const electionNow = Date.parse('2026-09-23T00:00:00Z');
+const mover = row('host');
+assert.equal(
+  await moveTown(
+    d,
+    mover,
+    { fromTown: 'new', membership: 0, destination: 'public', home: 3 },
+    electionNow,
+  ),
+  null,
+);
+assert.equal(
+  (await readElection(d, row('host'), electionNow)).participationLocked,
+  true,
+);
+assert.equal(
+  (
+    await electionAction(
+      d,
+      row('host'),
+      'nominate',
+      '2026-09',
+      null,
+      electionNow,
+    )
+  ).status,
+  409,
+);
+assert.equal(
+  (await readElection(d, row('host'), Date.parse('2026-10-01T00:00:00Z')))
+    .participationLocked,
+  false,
+);
 // An active-election withdrawal is excluded from its eventual winner tally.
-sql.exec("INSERT INTO election_candidates(town_id,cycle,resident_id,nominated_at,withdrawn_at) VALUES('old','2026-09','b',2,0);INSERT INTO election_votes(town_id,cycle,voter_id,candidate_id,cast_at) VALUES('old','2026-09','a','a',1),('old','2026-09','b','b',1);UPDATE residents SET town_id='old',home=4 WHERE id='b'");assert.equal((await readMayor(d,'old',Date.parse('2026-10-01T00:00:00Z'))).id,'b');
+sql.exec(
+  "INSERT INTO election_candidates(town_id,cycle,resident_id,nominated_at,withdrawn_at) VALUES('old','2026-09','b',2,0);INSERT INTO election_votes(town_id,cycle,voter_id,candidate_id,cast_at) VALUES('old','2026-09','a','a',1),('old','2026-09','b','b',1);UPDATE residents SET town_id='old',home=4 WHERE id='b'",
+);
+assert.equal(
+  (await readMayor(d, 'old', Date.parse('2026-10-01T00:00:00Z'))).id,
+  'b',
+);
 // Any failure rolls back both the move and its departure notice.
-sql.exec("CREATE TRIGGER fail_move BEFORE INSERT ON events BEGIN SELECT RAISE(ABORT,'rollback');END");const saved=row('host');await assert.rejects(go(saved,'new',5,'SECRET'));assert.deepEqual(row('host'),saved);
-console.log('PASS: private code protection, public discovery, vacant home and capacity checks, atomic transfer, preserved progression and upkeep, town-owned history, mayor departure, withdrawn campaigns, election eligibility, duplicate/competing moves, and rollback.');
+sql.exec(
+  "CREATE TRIGGER fail_move BEFORE INSERT ON events BEGIN SELECT RAISE(ABORT,'rollback');END",
+);
+const saved = row('host');
+await assert.rejects(go(saved, 'new', 5, 'SECRET'));
+assert.deepEqual(row('host'), saved);
+console.log(
+  'PASS: private code protection, public discovery, vacant home and capacity checks, atomic transfer, preserved progression and upkeep, town-owned history, mayor departure, withdrawn campaigns, election eligibility, duplicate/competing moves, and rollback.',
+);

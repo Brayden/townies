@@ -1,28 +1,151 @@
 import assert from 'node:assert/strict';
-const base=process.env.TOWNIES_TEST_URL??'http://localhost:3002';
-if(!/^http:\/\/(localhost|127\.0\.0\.1):/.test(base))throw new Error('Account tests only create residents locally.');
-const stamp=Date.now(),password='River meadow lantern 42!';
-function client(){const cookies=new Map();return {cookies,async api(path,body,extra={}){const r=await fetch(base+path,{method:body?'POST':'GET',headers:{Origin:base,'cf-connecting-ip':'127.0.0.1',Cookie:[...cookies].map(([k,v])=>`${k}=${v}`).join('; '),...(body?{'Content-Type':'application/json'}:{}),...extra},...(body?{body:JSON.stringify(body)}:{})});for(const c of r.headers.getSetCookie()){const [pair]=c.split(';'),i=pair.indexOf('=');cookies.set(pair.slice(0,i),pair.slice(i+1))}let data;try{data=await r.json()}catch{data={}}return {status:r.status,data,headers:r.headers}}};}
-const a=client(),b=client();
-for(const path of ['/api/game','/api/chat','/api/social'])assert.equal((await a.api(path)).status,401,path);
-assert.equal((await a.api('/api/game',null,{'oai-authenticated-user-id':'forged-user'})).status,401);
-assert.equal((await a.api('/api/game',{action:'join',name:'Spoof',mode:'public'},{'oai-authenticated-user-id':'forged-user'})).status,401);
-assert.equal((await a.api('/api/account')).data.user,null);
-const email=`alder-${stamp}@example.com`;
-const signup=await a.api('/api/auth/sign-up/email',{name:'Alder',email,password});assert.equal(signup.status,200,JSON.stringify(signup.data));assert.ok(signup.headers.getSetCookie().some(c=>/HttpOnly/i.test(c)));
-assert.equal((await a.api('/api/account')).data.user.email,email);
-const town=await a.api('/api/game',{action:'join',name:'Alder',mode:'private',townName:'Account Test'});assert.equal(town.status,200,JSON.stringify(town.data));const resident=town.data.resident.id;
-const setup=await a.api('/api/game',{action:'setup',job:'mow',home:0});assert.equal(setup.status,200,JSON.stringify(setup.data));
-const second=await b.api('/api/auth/sign-up/email',{name:'Birch',email:`birch-${stamp}@example.com`,password});assert.equal(second.status,200,JSON.stringify(second.data));
-const friend=await b.api('/api/game',{action:'join',name:'Birch',mode:'key',key:town.data.town.key});assert.equal(friend.status,200,JSON.stringify(friend.data));assert.equal(friend.data.town.id,town.data.town.id);assert.notEqual(friend.data.resident.id,resident);
-assert.equal((await b.api('/api/game',{action:'setup',job:'paper',home:0})).status,409);assert.equal((await b.api('/api/game',{action:'setup',job:'paper',home:1})).status,200);
-assert.equal((await a.api('/api/auth/sign-out',{}, {Origin:'https://evil.example'})).status,403);
-const oldCookie=[...a.cookies].map(([k,v])=>`${k}=${v}`).join('; ');
-assert.equal((await a.api('/api/auth/sign-out',{})).status,200);assert.equal((await a.api('/api/game')).status,401);
-assert.equal((await a.api('/api/game',null,{Cookie:oldCookie})).status,401,'logged-out sessions must be revoked');
-assert.equal((await a.api('/api/auth/sign-in/email',{email,password:'not the right password'})).status,401);
-const login=await a.api('/api/auth/sign-in/email',{email,password});assert.equal(login.status,200,JSON.stringify(login.data));
-const returned=await a.api('/api/game');assert.equal(returned.data.resident.id,resident);assert.equal(returned.data.resident.home,0);assert.equal(returned.data.resident.job,'mow');
-const spoof=await b.api('/api/game',null,{'oai-authenticated-user-id':resident});assert.equal(spoof.data.resident.id,friend.data.resident.id);
-assert.equal((await a.api('/api/auth/sign-up/email',{name:'Duplicate',email,password})).status,422);
-console.log('PASS: account creation, cookie sessions, API gates, forged-header rejection, private-town invitation, home ownership, wrong password, cross-origin protection, logout/revocation, and login persistence.');
+const base = process.env.TOWNIES_TEST_URL ?? 'http://localhost:3002';
+if (!/^http:\/\/(localhost|127\.0\.0\.1):/.test(base))
+  throw new Error('Account tests only create residents locally.');
+const stamp = Date.now(),
+  password = 'River meadow lantern 42!';
+function client() {
+  const cookies = new Map();
+  return {
+    cookies,
+    async api(path, body, extra = {}) {
+      const r = await fetch(base + path, {
+        method: body ? 'POST' : 'GET',
+        headers: {
+          Origin: base,
+          'cf-connecting-ip': '127.0.0.1',
+          Cookie: [...cookies].map(([k, v]) => `${k}=${v}`).join('; '),
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
+          ...extra,
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      for (const c of r.headers.getSetCookie()) {
+        const [pair] = c.split(';'),
+          i = pair.indexOf('=');
+        cookies.set(pair.slice(0, i), pair.slice(i + 1));
+      }
+      let data;
+      try {
+        data = await r.json();
+      } catch {
+        data = {};
+      }
+      return { status: r.status, data, headers: r.headers };
+    },
+  };
+}
+const a = client(),
+  b = client();
+for (const path of ['/api/game', '/api/chat', '/api/social'])
+  assert.equal((await a.api(path)).status, 401, path);
+assert.equal(
+  (
+    await a.api('/api/game', null, {
+      'oai-authenticated-user-id': 'forged-user',
+    })
+  ).status,
+  401,
+);
+assert.equal(
+  (
+    await a.api(
+      '/api/game',
+      { action: 'join', name: 'Spoof', mode: 'public' },
+      { 'oai-authenticated-user-id': 'forged-user' },
+    )
+  ).status,
+  401,
+);
+assert.equal((await a.api('/api/account')).data.user, null);
+const email = `alder-${stamp}@example.com`;
+const signup = await a.api('/api/auth/sign-up/email', {
+  name: 'Alder',
+  email,
+  password,
+});
+assert.equal(signup.status, 200, JSON.stringify(signup.data));
+assert.ok(signup.headers.getSetCookie().some((c) => /HttpOnly/i.test(c)));
+assert.equal((await a.api('/api/account')).data.user.email, email);
+const town = await a.api('/api/game', {
+  action: 'join',
+  name: 'Alder',
+  mode: 'private',
+  townName: 'Account Test',
+});
+assert.equal(town.status, 200, JSON.stringify(town.data));
+const resident = town.data.resident.id;
+const setup = await a.api('/api/game', {
+  action: 'setup',
+  job: 'mow',
+  home: 0,
+});
+assert.equal(setup.status, 200, JSON.stringify(setup.data));
+const second = await b.api('/api/auth/sign-up/email', {
+  name: 'Birch',
+  email: `birch-${stamp}@example.com`,
+  password,
+});
+assert.equal(second.status, 200, JSON.stringify(second.data));
+const friend = await b.api('/api/game', {
+  action: 'join',
+  name: 'Birch',
+  mode: 'key',
+  key: town.data.town.key,
+});
+assert.equal(friend.status, 200, JSON.stringify(friend.data));
+assert.equal(friend.data.town.id, town.data.town.id);
+assert.notEqual(friend.data.resident.id, resident);
+assert.equal(
+  (await b.api('/api/game', { action: 'setup', job: 'paper', home: 0 })).status,
+  409,
+);
+assert.equal(
+  (await b.api('/api/game', { action: 'setup', job: 'paper', home: 1 })).status,
+  200,
+);
+assert.equal(
+  (await a.api('/api/auth/sign-out', {}, { Origin: 'https://evil.example' }))
+    .status,
+  403,
+);
+const oldCookie = [...a.cookies].map(([k, v]) => `${k}=${v}`).join('; ');
+assert.equal((await a.api('/api/auth/sign-out', {})).status, 200);
+assert.equal((await a.api('/api/game')).status, 401);
+assert.equal(
+  (await a.api('/api/game', null, { Cookie: oldCookie })).status,
+  401,
+  'logged-out sessions must be revoked',
+);
+assert.equal(
+  (
+    await a.api('/api/auth/sign-in/email', {
+      email,
+      password: 'not the right password',
+    })
+  ).status,
+  401,
+);
+const login = await a.api('/api/auth/sign-in/email', { email, password });
+assert.equal(login.status, 200, JSON.stringify(login.data));
+const returned = await a.api('/api/game');
+assert.equal(returned.data.resident.id, resident);
+assert.equal(returned.data.resident.home, 0);
+assert.equal(returned.data.resident.job, 'mow');
+const spoof = await b.api('/api/game', null, {
+  'oai-authenticated-user-id': resident,
+});
+assert.equal(spoof.data.resident.id, friend.data.resident.id);
+assert.equal(
+  (
+    await a.api('/api/auth/sign-up/email', {
+      name: 'Duplicate',
+      email,
+      password,
+    })
+  ).status,
+  422,
+);
+console.log(
+  'PASS: account creation, cookie sessions, API gates, forged-header rejection, private-town invitation, home ownership, wrong password, cross-origin protection, logout/revocation, and login persistence.',
+);

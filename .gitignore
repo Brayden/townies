@@ -40,3 +40,12 @@ next-env.d.ts
 *.tsbuildinfo
 
 .dev.vars*
+
+# Maintainer-only deployment configuration
+/wrangler.production.json
+/wrangler.staging.json
+/.dev.vars.production
+/.dev.vars.staging
+!.dev.vars.example
+/playwright-report/
+/test-results/

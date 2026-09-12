@@ -1,28 +1,185 @@
 // Game fixtures use town SQLite migrations; 0016+ are shared-directory migrations.
 import assert from 'node:assert/strict';
-import {DatabaseSync} from 'node:sqlite';
-import {readFileSync,readdirSync} from 'node:fs';
-import {HOUSES,HOUSE_STYLES,houseById,houseCost,nextMonth,settleUpkeep,parcelHomes,grassHeight,DAY_MS,capacity} from '../app/game/lifestyle.ts';
-import {OUTFITS} from '../app/game/outfits.ts';
-import {lifestyleAction,maintainHomes} from '../db/lifestyle.ts';
-import {fieldPose,FIELD_DURATION} from '../app/game/fieldAnimation.ts';
-assert.equal(HOUSES.length,50);assert.equal(new Set(HOUSES.map(h=>h.id)).size,50);assert.equal(new Set(HOUSES.map(h=>h.name)).size,50);
-for(const style of HOUSE_STYLES){const homes=HOUSES.filter(h=>h.style===style.id);assert.equal(homes.length,5);for(let i=1;i<5;i++){assert.ok(homes[i].price>homes[i-1].price);assert.ok(homes[i].upkeep>homes[i-1].upkeep);}}
-assert.equal(new Date(nextMonth(Date.parse('2028-01-31T12:00:00Z'))).toISOString(),'2028-02-29T12:00:00.000Z');assert.equal(new Date(nextMonth(Date.parse('2026-12-09T12:00:00Z'))).toISOString(),'2027-01-09T12:00:00.000Z');
-const now=Date.parse('2026-09-09T12:00:00Z'),due=Date.parse('2026-08-09T12:00:00Z');
-assert.deepEqual(settleUpkeep('meadow-3',500,due,now),{house:'meadow-3',coins:280,due:nextMonth(now),paid:220,levels:0});assert.equal(settleUpkeep('meadow-5',0,due,now).house,'meadow-3');assert.equal(settleUpkeep('meadow-1',0,due,now).house,'meadow-1');assert.equal(settleUpkeep('meadow-5',420,now,now).coins,0);assert.equal(settleUpkeep('meadow-5',420,now,now-1).coins,420);
-for(let day=0;day<10;day++){const route=parcelHomes('a',now+day*DAY_MS);assert.equal(route.length,38);assert.equal(new Set(route).size,38);assert.ok(route.every(id=>id>=0&&id<50));assert.deepEqual(route,parcelHomes('a',now+day*DAY_MS+1));}assert.notDeepEqual(parcelHomes('a',now),parcelHomes('b',now));assert.notDeepEqual(parcelHomes('a',now),parcelHomes('a',now+DAY_MS));
-assert.equal(grassHeight(now,now+DAY_MS-1,now),0);assert.ok(grassHeight(now,now+DAY_MS,now)>0);assert.ok(grassHeight(now,now+3*DAY_MS,now)>grassHeight(now,now+2*DAY_MS,now));assert.equal(grassHeight(now,now+100*DAY_MS,now),2.4);assert.ok(grassHeight(undefined,now,now)>0);
-assert.equal(capacity('clean',['cleanup-bag']),16);assert.equal(capacity('garden',[]),8);assert.ok(OUTFITS.some(o=>o.shape==='dress'));assert.ok(OUTFITS.some(o=>o.shape==='top'));assert.equal(new Set(OUTFITS.map(o=>o.id)).size,OUTFITS.length);
-for(const job of ['deliver','clean'])for(const reduced of [false,true]){let before;for(let t=0;t<=FIELD_DURATION[job]+50;t+=5){const pose=fieldPose(job,t,{x:3,z:4},{x:4,z:5},reduced);assert.ok(Object.values(pose).every(v=>typeof v==='boolean'||Number.isFinite(v)));if(before)assert.ok(Math.hypot(pose.x-before.x,pose.y-before.y,pose.z-before.z)<.08);before=pose;}assert.ok(before.done);if(job==='deliver'){assert.equal(before.x,4);assert.equal(before.z,5);assert.equal(before.y,.655)}else assert.equal(before.scale,0);}
-const sqlite=new DatabaseSync(':memory:');sqlite.exec('PRAGMA foreign_keys=ON');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')&&Number(f.slice(0,4))<=15).sort())sqlite.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
-const d={prepare(sql){const stmt=sqlite.prepare(sql);let args=[];return{bind(...a){args=a;return this},async first(){return stmt.get(...args)??null},async all(){return{results:stmt.all(...args)}},async run(){return{meta:{changes:Number(stmt.run(...args).changes)}}}}}};
-sqlite.exec("INSERT INTO towns(id,name,created) VALUES('town','Town',0); INSERT INTO residents(id,token_hash,town_id,name,color,home,job,coins,seen,created) VALUES('a','a','town','A','#fff',0,'paper',30000,0,0),('b','b','town','B','#fff',1,'paper',10000,0,0)");
-const row=(id='a')=>sqlite.prepare('SELECT * FROM residents WHERE id=?').get(id),act=(b,r=row())=>lifestyleAction(d,r,b,now);
-assert.equal(await act({action:'house',house:'pearl-5',cost:1}),null);assert.equal(row().coins,30000-houseCost('meadow-1','pearl-5'));assert.equal(row().house,'pearl-5');assert.equal(row().upkeep_due,nextMonth(now));
-const balance=row().coins;assert.equal((await act({action:'move-home',home:1})).status,409);assert.equal(row().coins,balance);assert.equal(row().home,0);
-const moving=row();const race=await Promise.all([act({action:'move-home',home:2},moving),act({action:'move-home',home:3},moving)]);assert.equal(race.filter(v=>v===null).length,1);assert.equal(row().coins,balance-100);assert.equal(row().house,'pearl-5');assert.equal(row().upkeep_due,nextMonth(now));
-assert.equal((await act({action:'bike',active:true})).status,409);sqlite.exec("UPDATE residents SET items='[\"bike\"]' WHERE id='a'");assert.equal(await act({action:'bike',active:true}),null);assert.equal(row().riding,1);sqlite.exec("UPDATE residents SET shift='paper' WHERE id='a'");assert.equal((await act({action:'bike',active:true})).status,409);
-assert.equal(await act({action:'wardrobe',item:'dress-rose'}),null);assert.equal(row().outfit,'dress-rose');const afterDress=row().coins;assert.equal(await act({action:'wardrobe',item:'dress-rose'}),null);assert.equal(row().coins,afterDress);assert.equal(await act({action:'wardrobe',item:'hat-top'}),null);assert.equal(row().outfit,'dress-rose');assert.equal(row().hat,'hat-top');assert.equal(await act({action:'wardrobe',item:'accessory-glasses'}),null);assert.equal(row().accessory,'accessory-glasses');
-sqlite.prepare("UPDATE residents SET house='meadow-5',coins=0,upkeep_due=? WHERE id='a'").run(now);await Promise.all([maintainHomes(d,'town',now),maintainHomes(d,'town',now)]);assert.equal(row().house,'meadow-4');assert.equal(row().upkeep_due,nextMonth(now));assert.equal(row().coins,0);await maintainHomes(d,'town',now);assert.equal(row().house,'meadow-4');
-console.log('PASS: 50 unique homes, all style/level prices, month/leap boundaries, upkeep/downgrade/idempotency, move races, preserved ownership, mix-and-match wardrobe purchases, bike eligibility, daily parcel subsets, 24-hour grass growth, gear capacity, and continuous field animations.');
+import { DatabaseSync } from 'node:sqlite';
+import { readFileSync, readdirSync } from 'node:fs';
+import {
+  HOUSES,
+  HOUSE_STYLES,
+  houseById,
+  houseCost,
+  nextMonth,
+  settleUpkeep,
+  parcelHomes,
+  grassHeight,
+  DAY_MS,
+  capacity,
+} from '../app/game/lifestyle.ts';
+import { OUTFITS } from '../app/game/outfits.ts';
+import { lifestyleAction, maintainHomes } from '../db/lifestyle.ts';
+import { fieldPose, FIELD_DURATION } from '../app/game/fieldAnimation.ts';
+assert.equal(HOUSES.length, 50);
+assert.equal(new Set(HOUSES.map((h) => h.id)).size, 50);
+assert.equal(new Set(HOUSES.map((h) => h.name)).size, 50);
+for (const style of HOUSE_STYLES) {
+  const homes = HOUSES.filter((h) => h.style === style.id);
+  assert.equal(homes.length, 5);
+  for (let i = 1; i < 5; i++) {
+    assert.ok(homes[i].price > homes[i - 1].price);
+    assert.ok(homes[i].upkeep > homes[i - 1].upkeep);
+  }
+}
+assert.equal(
+  new Date(nextMonth(Date.parse('2028-01-31T12:00:00Z'))).toISOString(),
+  '2028-02-29T12:00:00.000Z',
+);
+assert.equal(
+  new Date(nextMonth(Date.parse('2026-12-09T12:00:00Z'))).toISOString(),
+  '2027-01-09T12:00:00.000Z',
+);
+const now = Date.parse('2026-09-09T12:00:00Z'),
+  due = Date.parse('2026-08-09T12:00:00Z');
+assert.deepEqual(settleUpkeep('meadow-3', 500, due, now), {
+  house: 'meadow-3',
+  coins: 280,
+  due: nextMonth(now),
+  paid: 220,
+  levels: 0,
+});
+assert.equal(settleUpkeep('meadow-5', 0, due, now).house, 'meadow-3');
+assert.equal(settleUpkeep('meadow-1', 0, due, now).house, 'meadow-1');
+assert.equal(settleUpkeep('meadow-5', 420, now, now).coins, 0);
+assert.equal(settleUpkeep('meadow-5', 420, now, now - 1).coins, 420);
+for (let day = 0; day < 10; day++) {
+  const route = parcelHomes('a', now + day * DAY_MS);
+  assert.equal(route.length, 38);
+  assert.equal(new Set(route).size, 38);
+  assert.ok(route.every((id) => id >= 0 && id < 50));
+  assert.deepEqual(route, parcelHomes('a', now + day * DAY_MS + 1));
+}
+assert.notDeepEqual(parcelHomes('a', now), parcelHomes('b', now));
+assert.notDeepEqual(parcelHomes('a', now), parcelHomes('a', now + DAY_MS));
+assert.equal(grassHeight(now, now + DAY_MS - 1, now), 0);
+assert.ok(grassHeight(now, now + DAY_MS, now) > 0);
+assert.ok(
+  grassHeight(now, now + 3 * DAY_MS, now) >
+    grassHeight(now, now + 2 * DAY_MS, now),
+);
+assert.equal(grassHeight(now, now + 100 * DAY_MS, now), 2.4);
+assert.ok(grassHeight(undefined, now, now) > 0);
+assert.equal(capacity('clean', ['cleanup-bag']), 16);
+assert.equal(capacity('garden', []), 8);
+assert.ok(OUTFITS.some((o) => o.shape === 'dress'));
+assert.ok(OUTFITS.some((o) => o.shape === 'top'));
+assert.equal(new Set(OUTFITS.map((o) => o.id)).size, OUTFITS.length);
+for (const job of ['deliver', 'clean'])
+  for (const reduced of [false, true]) {
+    let before;
+    for (let t = 0; t <= FIELD_DURATION[job] + 50; t += 5) {
+      const pose = fieldPose(job, t, { x: 3, z: 4 }, { x: 4, z: 5 }, reduced);
+      assert.ok(
+        Object.values(pose).every(
+          (v) => typeof v === 'boolean' || Number.isFinite(v),
+        ),
+      );
+      if (before)
+        assert.ok(
+          Math.hypot(pose.x - before.x, pose.y - before.y, pose.z - before.z) <
+            0.08,
+        );
+      before = pose;
+    }
+    assert.ok(before.done);
+    if (job === 'deliver') {
+      assert.equal(before.x, 4);
+      assert.equal(before.z, 5);
+      assert.equal(before.y, 0.655);
+    } else assert.equal(before.scale, 0);
+  }
+const sqlite = new DatabaseSync(':memory:');
+sqlite.exec('PRAGMA foreign_keys=ON');
+for (const f of readdirSync(new URL('../drizzle/', import.meta.url))
+  .filter((f) => f.endsWith('.sql') && Number(f.slice(0, 4)) <= 15)
+  .sort())
+  sqlite.exec(
+    readFileSync(new URL('../drizzle/' + f, import.meta.url), 'utf8'),
+  );
+const d = {
+  prepare(sql) {
+    const stmt = sqlite.prepare(sql);
+    let args = [];
+    return {
+      bind(...a) {
+        args = a;
+        return this;
+      },
+      async first() {
+        return stmt.get(...args) ?? null;
+      },
+      async all() {
+        return { results: stmt.all(...args) };
+      },
+      async run() {
+        return { meta: { changes: Number(stmt.run(...args).changes) } };
+      },
+    };
+  },
+};
+sqlite.exec(
+  "INSERT INTO towns(id,name,created) VALUES('town','Town',0); INSERT INTO residents(id,token_hash,town_id,name,color,home,job,coins,seen,created) VALUES('a','a','town','A','#fff',0,'paper',30000,0,0),('b','b','town','B','#fff',1,'paper',10000,0,0)",
+);
+const row = (id = 'a') =>
+    sqlite.prepare('SELECT * FROM residents WHERE id=?').get(id),
+  act = (b, r = row()) => lifestyleAction(d, r, b, now);
+assert.equal(await act({ action: 'house', house: 'pearl-5', cost: 1 }), null);
+assert.equal(row().coins, 30000 - houseCost('meadow-1', 'pearl-5'));
+assert.equal(row().house, 'pearl-5');
+assert.equal(row().upkeep_due, nextMonth(now));
+const balance = row().coins;
+assert.equal((await act({ action: 'move-home', home: 1 })).status, 409);
+assert.equal(row().coins, balance);
+assert.equal(row().home, 0);
+const moving = row();
+const race = await Promise.all([
+  act({ action: 'move-home', home: 2 }, moving),
+  act({ action: 'move-home', home: 3 }, moving),
+]);
+assert.equal(race.filter((v) => v === null).length, 1);
+assert.equal(row().coins, balance - 100);
+assert.equal(row().house, 'pearl-5');
+assert.equal(row().upkeep_due, nextMonth(now));
+assert.equal((await act({ action: 'bike', active: true })).status, 409);
+sqlite.exec("UPDATE residents SET items='[\"bike\"]' WHERE id='a'");
+assert.equal(await act({ action: 'bike', active: true }), null);
+assert.equal(row().riding, 1);
+sqlite.exec("UPDATE residents SET shift='paper' WHERE id='a'");
+assert.equal((await act({ action: 'bike', active: true })).status, 409);
+assert.equal(await act({ action: 'wardrobe', item: 'dress-rose' }), null);
+assert.equal(row().outfit, 'dress-rose');
+const afterDress = row().coins;
+assert.equal(await act({ action: 'wardrobe', item: 'dress-rose' }), null);
+assert.equal(row().coins, afterDress);
+assert.equal(await act({ action: 'wardrobe', item: 'hat-top' }), null);
+assert.equal(row().outfit, 'dress-rose');
+assert.equal(row().hat, 'hat-top');
+assert.equal(
+  await act({ action: 'wardrobe', item: 'accessory-glasses' }),
+  null,
+);
+assert.equal(row().accessory, 'accessory-glasses');
+sqlite
+  .prepare(
+    "UPDATE residents SET house='meadow-5',coins=0,upkeep_due=? WHERE id='a'",
+  )
+  .run(now);
+await Promise.all([
+  maintainHomes(d, 'town', now),
+  maintainHomes(d, 'town', now),
+]);
+assert.equal(row().house, 'meadow-4');
+assert.equal(row().upkeep_due, nextMonth(now));
+assert.equal(row().coins, 0);
+await maintainHomes(d, 'town', now);
+assert.equal(row().house, 'meadow-4');
+console.log(
+  'PASS: 50 unique homes, all style/level prices, month/leap boundaries, upkeep/downgrade/idempotency, move races, preserved ownership, mix-and-match wardrobe purchases, bike eligibility, daily parcel subsets, 24-hour grass growth, gear capacity, and continuous field animations.',
+);

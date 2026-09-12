@@ -1,0 +1,20 @@
+{
+  "@better-auth/utils@0.4.2": "third-party/licenses/better-auth-utils.txt",
+  "@better-auth/utils@0.5.0": "third-party/licenses/better-auth-utils.txt",
+  "@cloudflare/workers-types@5.20260911.1": "third-party/licenses/workers-types.txt",
+  "@drizzle-team/brocli@0.10.2": "third-party/licenses/brocli.txt",
+  "@resvg/resvg-wasm@2.4.0": "third-party/licenses/resvg.txt",
+  "@unpic/core@1.0.3": "third-party/licenses/unpic-core.txt",
+  "@vitejs/plugin-rsc@0.5.34": "third-party/licenses/vite-rsc.txt",
+  "css-box-shadow@1.0.0-3": "third-party/licenses/css-box-shadow.txt",
+  "drizzle-kit@0.31.10": "third-party/licenses/drizzle-orm.txt",
+  "drizzle-orm@0.45.2": "third-party/licenses/drizzle-orm.txt",
+  "embla-carousel@8.5.2": "third-party/licenses/embla.txt",
+  "embla-carousel-react@8.5.2": "third-party/licenses/embla.txt",
+  "embla-carousel-reactive-utils@8.5.2": "third-party/licenses/embla.txt",
+  "input-otp@1.4.2": "third-party/licenses/input-otp.txt",
+  "react-remove-scroll-bar@2.3.8": "third-party/licenses/react-remove-scroll-bar.txt",
+  "unpic@4.2.2": "third-party/licenses/unpic.txt",
+  "victory-vendor@37.3.6": "third-party/licenses/victory.txt",
+  "yoga-layout@3.2.1": "third-party/licenses/yoga.txt"
+}

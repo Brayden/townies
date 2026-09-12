@@ -1,0 +1,82 @@
+{
+  "better-auth-utils": {
+    "source": "https://github.com/better-auth/utils/blob/main/LICENSE",
+    "blob": "32d2c20a87842fb25fb641cadd40bf67f8f30ff7",
+    "file": "third-party/licenses/better-auth-utils.txt"
+  },
+  "workers-types": {
+    "source": "https://github.com/cloudflare/workerd/blob/main/LICENSE",
+    "blob": "f433b1a53f5b830a205fd2df78e2b34974656c7b",
+    "file": "third-party/licenses/workers-types.txt"
+  },
+  "brocli": {
+    "source": "https://github.com/drizzle-team/brocli/blob/main/LICENSE",
+    "blob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+    "file": "third-party/licenses/brocli.txt"
+  },
+  "esbuild": {
+    "source": "https://github.com/evanw/esbuild/blob/main/LICENSE.md",
+    "blob": "2027e8dcf3787f5aac9fcd835e2b80cb75a39211",
+    "file": "third-party/licenses/esbuild.txt"
+  },
+  "resvg": {
+    "source": "https://github.com/thx/resvg-js/blob/main/LICENSE",
+    "blob": "fa0086a952236971ab37901954d596efae9f4af6",
+    "file": "third-party/licenses/resvg.txt"
+  },
+  "rolldown": {
+    "source": "https://github.com/rolldown/rolldown/blob/main/LICENSE",
+    "blob": "afc0cdbabfb99ed4030bf9be2b852977f1ed72a0",
+    "file": "third-party/licenses/rolldown.txt"
+  },
+  "unpic-core": {
+    "source": "https://www.npmjs.com/package/@unpic/core/v/1.0.3",
+    "file": "third-party/licenses/unpic-core.txt",
+    "note": "MIT declaration from package metadata; full upstream notice missing."
+  },
+  "vite-rsc": {
+    "source": "https://github.com/vitejs/vite-plugin-react/blob/main/LICENSE",
+    "blob": "9c1b313d7b18166024d52473b2ed645f5b4e64dd",
+    "file": "third-party/licenses/vite-rsc.txt"
+  },
+  "drizzle-orm": {
+    "source": "https://github.com/drizzle-team/drizzle-orm/blob/main/LICENSE",
+    "blob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+    "file": "third-party/licenses/drizzle-orm.txt"
+  },
+  "embla": {
+    "source": "https://github.com/davidjerleke/embla-carousel/blob/master/LICENSE",
+    "blob": "2376624f527f4f1e53887552e42b004ab4056898",
+    "file": "third-party/licenses/embla.txt"
+  },
+  "input-otp": {
+    "source": "https://github.com/guilhermerodz/input-otp/blob/master/LICENSE",
+    "blob": "3d8feae905f69bb4279c5abe93d005c7ccc5bdf7",
+    "file": "third-party/licenses/input-otp.txt"
+  },
+  "react-remove-scroll-bar": {
+    "source": "https://github.com/theKashey/react-remove-scroll-bar/blob/master/LICENSE",
+    "blob": "7c08c3990396ecefd90f99ff5d9a34f26f5b5616",
+    "file": "third-party/licenses/react-remove-scroll-bar.txt"
+  },
+  "unpic": {
+    "source": "https://www.npmjs.com/package/unpic/v/4.2.2",
+    "file": "third-party/licenses/unpic.txt",
+    "note": "MIT declaration from package metadata; full upstream notice missing."
+  },
+  "yoga": {
+    "source": "https://github.com/react/yoga/blob/main/LICENSE",
+    "blob": "b96dcb0480a0b0be0727976e5202a1e7b23edc3f",
+    "file": "third-party/licenses/yoga.txt"
+  },
+  "victory": {
+    "source": "https://github.com/FormidableLabs/victory/blob/main/LICENSE.txt",
+    "blob": "4d33f1aba85636b665016cabb1b991209177c606",
+    "file": "third-party/licenses/victory.txt"
+  },
+  "css-box-shadow": {
+    "source": "https://www.npmjs.com/package/css-box-shadow/v/1.0.0-3",
+    "file": "third-party/licenses/css-box-shadow.txt",
+    "note": "MIT declaration from package metadata; full upstream notice missing."
+  }
+}

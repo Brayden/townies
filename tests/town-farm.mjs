@@ -1,28 +1,153 @@
 // Game fixtures use town SQLite migrations; 0016+ are shared-directory migrations.
 import assert from 'node:assert/strict';
-import {DatabaseSync} from 'node:sqlite';
-import {readFileSync,readdirSync} from 'node:fs';
-import {farmAction} from '../db/townFarm.ts';
-import {readPlanning} from '../db/planning.ts';
-import {TOWN_FARM,FARM_GATE,FARM_BARN,farmIsOpen} from '../app/game/townFarm.ts';
-import {EMPTY_PLANNING,townLayout,townBuildings} from '../app/game/charters.ts';
-import {isTownBlocked,entrance} from '../app/game/townLayout.ts';
-import {findPath} from '../app/game/pathfinding.ts';
-import {placementError} from '../app/game/placement.ts';
-const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')&&Number(f.slice(0,4))<=15).sort())sql.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
-const d={prepare(query){const stmt=sql.prepare(query);let args=[];return{bind(...a){args=a;return this},async first(){return stmt.get(...args)??null},async all(){return{results:stmt.all(...args)}},execute(){return{meta:{changes:Number(stmt.run(...args).changes)}}},async run(){return this.execute()}}},async batch(statements){sql.exec('BEGIN');try{const results=statements.map(s=>s.execute());sql.exec('COMMIT');return results}catch(e){sql.exec('ROLLBACK');throw e}}};
-const now=Date.parse('2026-09-10T12:00:00Z');sql.exec("INSERT INTO towns(id,name,created,treasury,project) VALUES('town','Town',0,1000,40),('other','Other',0,0,0);INSERT INTO residents(id,token_hash,town_id,name,color,home,job,coins,seen,created) VALUES('a','a','town','A','#fff',0,'mow',1000,0,0),('b','b','town','B','#fff',1,'paper',1000,0,0),('c','c','other','C','#fff',0,'mow',1000,0,0)");
-const row=id=>sql.prepare('SELECT * FROM residents WHERE id=?').get(id),town=()=>sql.prepare("SELECT * FROM towns WHERE id='town'").get(),a=row('a'),b=row('b');const action=(r,body)=>farmAction(d,r,body,now);
-assert.equal(farmIsOpen(await readPlanning(d,'town',a.id,now)),false);assert.equal(town().farm_funded,0);assert.equal((await action(a,{source:'treasury',funded:0})).status,403);
-const results=await Promise.all([action(a,{source:'personal',funded:0,amount:6000}),action(b,{source:'personal',funded:0})]);assert.equal(results.filter(v=>v===null).length,1);assert.equal(town().farm_funded,50);assert.equal(row('a').coins+row('b').coins,1950);assert.equal(town().treasury,1000);assert.equal(town().project,40);assert.equal((await readPlanning(d,'other','c',now)).farmFunded,0);
-assert.equal(sql.prepare("SELECT SUM(donated) AS total FROM contributions WHERE town_id='town'").get().total,50);
-sql.exec("INSERT INTO election_candidates(town_id,cycle,resident_id,nominated_at) VALUES('town','2026-08','a',1);INSERT INTO election_votes(town_id,cycle,voter_id,candidate_id,cast_at) VALUES('town','2026-08','b','a',2)");
-assert.equal(await action(a,{source:'treasury',funded:50}),null);assert.equal(town().farm_funded,150);assert.equal(town().treasury,900);
-sql.exec("UPDATE towns SET farm_funded=5980 WHERE id='town'");const before=row('b').coins;
-assert.equal(await action(b,{source:'personal',funded:5980}),null);assert.equal(row('b').coins,before-20);assert.equal(town().farm_funded,TOWN_FARM.cost);assert.equal((await action(a,{source:'personal',funded:6000})).status,409);assert.equal(town().project,40);
-const open=await readPlanning(d,'town',a.id,now),closed={...EMPTY_PLANNING,farmFunded:5999};assert.ok(farmIsOpen(open));assert.ok(!farmIsOpen(closed));
-const closedLayout=townLayout(closed),openLayout=townLayout(open);assert.equal(isTownBlocked(FARM_GATE.x,FARM_GATE.z,closedLayout),false);for(let z=-23;z<=21;z+=2)assert.equal(isTownBlocked(-61,z,closedLayout),true,'Locked farmland is inaccessible along the entire boundary');
-assert.ok(findPath(FARM_GATE,{x:-88,z:-18},(x,z)=>isTownBlocked(x,z,openLayout)).length);assert.ok(findPath({x:-88,z:-18},entrance(FARM_BARN),(x,z)=>isTownBlocked(x,z,openLayout)).length);assert.equal(isTownBlocked(-88,-18,openLayout),false);assert.equal(isTownBlocked(FARM_BARN.x,FARM_BARN.z,openLayout),true);assert.ok(!townBuildings(closed).some(b=>b.id===FARM_BARN.id));assert.ok(townBuildings(open).some(b=>b.id===FARM_BARN.id));assert.ok(placementError(open,{kind:'build',institution:null,option:'craft'},{x:-80,z:5,rotation:0}),'Farm fields stay protected from unrelated construction');
+import { DatabaseSync } from 'node:sqlite';
+import { readFileSync, readdirSync } from 'node:fs';
+import { farmAction } from '../db/townFarm.ts';
+import { readPlanning } from '../db/planning.ts';
+import {
+  TOWN_FARM,
+  FARM_GATE,
+  FARM_BARN,
+  farmIsOpen,
+} from '../app/game/townFarm.ts';
+import {
+  EMPTY_PLANNING,
+  townLayout,
+  townBuildings,
+} from '../app/game/charters.ts';
+import { isTownBlocked, entrance } from '../app/game/townLayout.ts';
+import { findPath } from '../app/game/pathfinding.ts';
+import { placementError } from '../app/game/placement.ts';
+const sql = new DatabaseSync(':memory:');
+sql.exec('PRAGMA foreign_keys=ON');
+for (const f of readdirSync(new URL('../drizzle/', import.meta.url))
+  .filter((f) => f.endsWith('.sql') && Number(f.slice(0, 4)) <= 15)
+  .sort())
+  sql.exec(readFileSync(new URL('../drizzle/' + f, import.meta.url), 'utf8'));
+const d = {
+  prepare(query) {
+    const stmt = sql.prepare(query);
+    let args = [];
+    return {
+      bind(...a) {
+        args = a;
+        return this;
+      },
+      async first() {
+        return stmt.get(...args) ?? null;
+      },
+      async all() {
+        return { results: stmt.all(...args) };
+      },
+      execute() {
+        return { meta: { changes: Number(stmt.run(...args).changes) } };
+      },
+      async run() {
+        return this.execute();
+      },
+    };
+  },
+  async batch(statements) {
+    sql.exec('BEGIN');
+    try {
+      const results = statements.map((s) => s.execute());
+      sql.exec('COMMIT');
+      return results;
+    } catch (e) {
+      sql.exec('ROLLBACK');
+      throw e;
+    }
+  },
+};
+const now = Date.parse('2026-09-10T12:00:00Z');
+sql.exec(
+  "INSERT INTO towns(id,name,created,treasury,project) VALUES('town','Town',0,1000,40),('other','Other',0,0,0);INSERT INTO residents(id,token_hash,town_id,name,color,home,job,coins,seen,created) VALUES('a','a','town','A','#fff',0,'mow',1000,0,0),('b','b','town','B','#fff',1,'paper',1000,0,0),('c','c','other','C','#fff',0,'mow',1000,0,0)",
+);
+const row = (id) => sql.prepare('SELECT * FROM residents WHERE id=?').get(id),
+  town = () => sql.prepare("SELECT * FROM towns WHERE id='town'").get(),
+  a = row('a'),
+  b = row('b');
+const action = (r, body) => farmAction(d, r, body, now);
+assert.equal(farmIsOpen(await readPlanning(d, 'town', a.id, now)), false);
+assert.equal(town().farm_funded, 0);
+assert.equal((await action(a, { source: 'treasury', funded: 0 })).status, 403);
+const results = await Promise.all([
+  action(a, { source: 'personal', funded: 0, amount: 6000 }),
+  action(b, { source: 'personal', funded: 0 }),
+]);
+assert.equal(results.filter((v) => v === null).length, 1);
+assert.equal(town().farm_funded, 50);
+assert.equal(row('a').coins + row('b').coins, 1950);
+assert.equal(town().treasury, 1000);
+assert.equal(town().project, 40);
+assert.equal((await readPlanning(d, 'other', 'c', now)).farmFunded, 0);
+assert.equal(
+  sql
+    .prepare(
+      "SELECT SUM(donated) AS total FROM contributions WHERE town_id='town'",
+    )
+    .get().total,
+  50,
+);
+sql.exec(
+  "INSERT INTO election_candidates(town_id,cycle,resident_id,nominated_at) VALUES('town','2026-08','a',1);INSERT INTO election_votes(town_id,cycle,voter_id,candidate_id,cast_at) VALUES('town','2026-08','b','a',2)",
+);
+assert.equal(await action(a, { source: 'treasury', funded: 50 }), null);
+assert.equal(town().farm_funded, 150);
+assert.equal(town().treasury, 900);
+sql.exec("UPDATE towns SET farm_funded=5980 WHERE id='town'");
+const before = row('b').coins;
+assert.equal(await action(b, { source: 'personal', funded: 5980 }), null);
+assert.equal(row('b').coins, before - 20);
+assert.equal(town().farm_funded, TOWN_FARM.cost);
+assert.equal(
+  (await action(a, { source: 'personal', funded: 6000 })).status,
+  409,
+);
+assert.equal(town().project, 40);
+const open = await readPlanning(d, 'town', a.id, now),
+  closed = { ...EMPTY_PLANNING, farmFunded: 5999 };
+assert.ok(farmIsOpen(open));
+assert.ok(!farmIsOpen(closed));
+const closedLayout = townLayout(closed),
+  openLayout = townLayout(open);
+assert.equal(isTownBlocked(FARM_GATE.x, FARM_GATE.z, closedLayout), false);
+for (let z = -23; z <= 21; z += 2)
+  assert.equal(
+    isTownBlocked(-61, z, closedLayout),
+    true,
+    'Locked farmland is inaccessible along the entire boundary',
+  );
+assert.ok(
+  findPath(FARM_GATE, { x: -88, z: -18 }, (x, z) =>
+    isTownBlocked(x, z, openLayout),
+  ).length,
+);
+assert.ok(
+  findPath({ x: -88, z: -18 }, entrance(FARM_BARN), (x, z) =>
+    isTownBlocked(x, z, openLayout),
+  ).length,
+);
+assert.equal(isTownBlocked(-88, -18, openLayout), false);
+assert.equal(isTownBlocked(FARM_BARN.x, FARM_BARN.z, openLayout), true);
+assert.ok(!townBuildings(closed).some((b) => b.id === FARM_BARN.id));
+assert.ok(townBuildings(open).some((b) => b.id === FARM_BARN.id));
+assert.ok(
+  placementError(
+    open,
+    { kind: 'build', institution: null, option: 'craft' },
+    { x: -80, z: 5, rotation: 0 },
+  ),
+  'Farm fields stay protected from unrelated construction',
+);
 // A failed budget transaction cannot leave money or unlocked land behind.
-sql.exec("UPDATE towns SET farm_funded=5950 WHERE id='town';CREATE TRIGGER fail_farm BEFORE INSERT ON events BEGIN SELECT RAISE(ABORT,'test rollback');END");const saved=town().treasury;await assert.rejects(action(a,{source:'treasury',funded:5950}));assert.equal(town().farm_funded,5950);assert.equal(town().treasury,saved);
-console.log('PASS: default parallel projects, personal/treasury authority, fund races, exact remaining costs, contribution records, rollback, isolated towns, closed west boundary, unlocked farm paths, barn collision and protected fields.');
+sql.exec(
+  "UPDATE towns SET farm_funded=5950 WHERE id='town';CREATE TRIGGER fail_farm BEFORE INSERT ON events BEGIN SELECT RAISE(ABORT,'test rollback');END",
+);
+const saved = town().treasury;
+await assert.rejects(action(a, { source: 'treasury', funded: 5950 }));
+assert.equal(town().farm_funded, 5950);
+assert.equal(town().treasury, saved);
+console.log(
+  'PASS: default parallel projects, personal/treasury authority, fund races, exact remaining costs, contribution records, rollback, isolated towns, closed west boundary, unlocked farm paths, barn collision and protected fields.',
+);

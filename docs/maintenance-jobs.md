@@ -2,12 +2,12 @@
 
 Four new shifts are available directly from Work and as regular career choices:
 
-| Shift | Interaction | Base pay before town policy |
-| --- | --- | --- |
-| Street sweeper | Drive the compact sweeper across debris on roads | 2 coins per section |
-| Sidewalk powerwasher | Tap a nearby dirty sidewalk or press Space/E; spray reveals clean strips over 3 seconds | 7 coins |
-| Hedge trimmer | Tap a nearby hedge or press Space/E; blades shape the overgrowth over 2.5 seconds | 8 coins |
-| Leaf raker | Tap a nearby leaf patch or press Space/E; leaves gather and disappear into the cleanup over 2.2 seconds | 6 coins |
+| Shift                | Interaction                                                                                             | Base pay before town policy |
+| -------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Street sweeper       | Drive the compact sweeper across debris on roads                                                        | 2 coins per section         |
+| Sidewalk powerwasher | Tap a nearby dirty sidewalk or press Space/E; spray reveals clean strips over 3 seconds                 | 7 coins                     |
+| Hedge trimmer        | Tap a nearby hedge or press Space/E; blades shape the overgrowth over 2.5 seconds                       | 8 coins                     |
+| Leaf raker           | Tap a nearby leaf patch or press Space/E; leaves gather and disappear into the cleanup over 2.2 seconds | 6 coins                     |
 
 Helping outside the resident's regular job reduces base pay by one coin, as with
 existing jobs. Town tax and prosperity bonuses apply. Tools are provided for the

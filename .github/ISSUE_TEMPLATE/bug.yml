@@ -1,0 +1,27 @@
+name: Bug report
+description: Something in Townies is not working as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please report security vulnerabilities privately through SECURITY.md. Do not include player data or credentials.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, device, and game version or commit
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Optional screenshot or sanitized error details

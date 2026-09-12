@@ -1,20 +1,97 @@
 // Game fixtures use town SQLite migrations; 0016+ are shared-directory migrations.
 import assert from 'node:assert/strict';
-import {DatabaseSync} from 'node:sqlite';
-import {readFileSync,readdirSync} from 'node:fs';
-import {claimMovement,movementOwner,presenceOnly} from '../db/movementControl.ts';
-const sql=new DatabaseSync(':memory:');for(const f of readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')&&Number(f.slice(0,4))<=15).sort())sql.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
-const d={prepare(query){const stmt=sql.prepare(query);let args=[];return{bind(...a){args=a;return this},async run(){return{meta:{changes:Number(stmt.run(...args).changes)}}}}}};
-sql.exec("INSERT INTO towns(id,name,created) VALUES('town','Town',0);INSERT INTO residents(id,token_hash,town_id,name,color,seen,created) VALUES('a','a','town','Alice','#fff',1000,0)");
-const row=()=>sql.prepare("SELECT * FROM residents WHERE id='a'").get(),desktop='desktop-0000000001',mobile='mobile-00000000001';
-assert.equal(movementOwner(row(),{}),true,'Legacy movement works until a modern device takes control');
-assert.equal(await claimMovement(d,row(),{device:desktop,moveEpoch:0},2000),true);assert.equal(row().move_epoch,1);assert.equal(movementOwner(row(),{}),false,'An old open tab cannot compete after takeover');
-assert.equal(movementOwner(row(),{device:desktop,moveEpoch:1}),true);assert.equal(movementOwner(row(),{device:mobile,moveEpoch:1}),false);
-await presenceOnly(d,row(),2900);assert.equal(row().move_updated,2000,'Standby heartbeats do not shorten the movement allowance');assert.equal(row().seen,2900);
-await claimMovement(d,row(),{device:desktop,moveEpoch:1},3000);assert.equal(row().move_epoch,1,'New direction input on the owner does not revoke its in-flight packets');assert.equal(row().move_updated,2000);
-const beforeMobile=row();assert.equal(await claimMovement(d,row(),{device:mobile,moveEpoch:1},4000),true);assert.equal(row().move_epoch,2);
-assert.equal(await claimMovement(d,beforeMobile,{device:desktop,moveEpoch:1},5000),false,'A delayed old input cannot steal ownership back');assert.equal(row().move_owner,mobile);
-assert.equal(movementOwner(row(),{device:desktop,moveEpoch:1}),false);assert.equal(movementOwner(row(),{device:mobile,moveEpoch:2}),true);
-assert.equal(await claimMovement(d,row(),{device:desktop,moveEpoch:2},6000),true,'Fresh input after observing the new owner can take over');assert.equal(row().move_epoch,3);
-assert.equal(await claimMovement(d,row(),{device:'invalid',moveEpoch:3},7000),false);assert.equal(await claimMovement(d,row(),{device:mobile,moveEpoch:3.5},7000),false);
-console.log('PASS: explicit device handoff, stale request fencing, legacy idle tabs, fresh takeover, and independent presence/movement clocks.');
+import { DatabaseSync } from 'node:sqlite';
+import { readFileSync, readdirSync } from 'node:fs';
+import {
+  claimMovement,
+  movementOwner,
+  presenceOnly,
+} from '../db/movementControl.ts';
+const sql = new DatabaseSync(':memory:');
+for (const f of readdirSync(new URL('../drizzle/', import.meta.url))
+  .filter((f) => f.endsWith('.sql') && Number(f.slice(0, 4)) <= 15)
+  .sort())
+  sql.exec(readFileSync(new URL('../drizzle/' + f, import.meta.url), 'utf8'));
+const d = {
+  prepare(query) {
+    const stmt = sql.prepare(query);
+    let args = [];
+    return {
+      bind(...a) {
+        args = a;
+        return this;
+      },
+      async run() {
+        return { meta: { changes: Number(stmt.run(...args).changes) } };
+      },
+    };
+  },
+};
+sql.exec(
+  "INSERT INTO towns(id,name,created) VALUES('town','Town',0);INSERT INTO residents(id,token_hash,town_id,name,color,seen,created) VALUES('a','a','town','Alice','#fff',1000,0)",
+);
+const row = () => sql.prepare("SELECT * FROM residents WHERE id='a'").get(),
+  desktop = 'desktop-0000000001',
+  mobile = 'mobile-00000000001';
+assert.equal(
+  movementOwner(row(), {}),
+  true,
+  'Legacy movement works until a modern device takes control',
+);
+assert.equal(
+  await claimMovement(d, row(), { device: desktop, moveEpoch: 0 }, 2000),
+  true,
+);
+assert.equal(row().move_epoch, 1);
+assert.equal(
+  movementOwner(row(), {}),
+  false,
+  'An old open tab cannot compete after takeover',
+);
+assert.equal(movementOwner(row(), { device: desktop, moveEpoch: 1 }), true);
+assert.equal(movementOwner(row(), { device: mobile, moveEpoch: 1 }), false);
+await presenceOnly(d, row(), 2900);
+assert.equal(
+  row().move_updated,
+  2000,
+  'Standby heartbeats do not shorten the movement allowance',
+);
+assert.equal(row().seen, 2900);
+await claimMovement(d, row(), { device: desktop, moveEpoch: 1 }, 3000);
+assert.equal(
+  row().move_epoch,
+  1,
+  'New direction input on the owner does not revoke its in-flight packets',
+);
+assert.equal(row().move_updated, 2000);
+const beforeMobile = row();
+assert.equal(
+  await claimMovement(d, row(), { device: mobile, moveEpoch: 1 }, 4000),
+  true,
+);
+assert.equal(row().move_epoch, 2);
+assert.equal(
+  await claimMovement(d, beforeMobile, { device: desktop, moveEpoch: 1 }, 5000),
+  false,
+  'A delayed old input cannot steal ownership back',
+);
+assert.equal(row().move_owner, mobile);
+assert.equal(movementOwner(row(), { device: desktop, moveEpoch: 1 }), false);
+assert.equal(movementOwner(row(), { device: mobile, moveEpoch: 2 }), true);
+assert.equal(
+  await claimMovement(d, row(), { device: desktop, moveEpoch: 2 }, 6000),
+  true,
+  'Fresh input after observing the new owner can take over',
+);
+assert.equal(row().move_epoch, 3);
+assert.equal(
+  await claimMovement(d, row(), { device: 'invalid', moveEpoch: 3 }, 7000),
+  false,
+);
+assert.equal(
+  await claimMovement(d, row(), { device: mobile, moveEpoch: 3.5 }, 7000),
+  false,
+);
+console.log(
+  'PASS: explicit device handoff, stale request fencing, legacy idle tabs, fresh takeover, and independent presence/movement clocks.',
+);

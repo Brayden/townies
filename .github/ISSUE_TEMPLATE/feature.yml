@@ -1,0 +1,20 @@
+name: Feature proposal
+description: Discuss a gameplay or contributor-experience improvement.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What player or contributor problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and alternatives
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Effect on existing towns, devices, and saved data

@@ -1,0 +1,5 @@
+# npm run setup creates a unique secret in the ignored outputs/local/.dev.vars.
+# Never copy production credentials into local development.
+BETTER_AUTH_SECRET="replace-with-a-locally-generated-random-secret"
+BETTER_AUTH_URL="http://localhost:3002"
+TOWNIES_AUTH_MODE="account"

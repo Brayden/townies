@@ -1,10 +1,32 @@
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {releaseAvatar} from '../app/game/avatarResources.ts';
-const scene=new THREE.Scene(),avatar=new THREE.Group(),shared=new THREE.MeshStandardMaterial(),privateMaterial=new THREE.MeshStandardMaterial(),geometry=new THREE.BoxGeometry();
-scene.add(avatar);avatar.add(new THREE.Mesh(geometry,[shared,privateMaterial]),new THREE.Mesh(geometry,privateMaterial));
-let geometryDisposals=0,sharedDisposals=0,privateDisposals=0;
-geometry.addEventListener('dispose',()=>geometryDisposals++);shared.addEventListener('dispose',()=>sharedDisposals++);privateMaterial.addEventListener('dispose',()=>privateDisposals++);
-releaseAvatar(avatar,new Set([shared]));
-assert.equal(avatar.parent,null);assert.equal(geometryDisposals,1);assert.equal(privateDisposals,1);assert.equal(sharedDisposals,0,'Town materials must remain usable for other players and scenery');shared.dispose();
-console.log('PASS: avatar removal releases private geometry/materials exactly once and preserves shared town materials.');
+import { releaseAvatar } from '../app/game/avatarResources.ts';
+const scene = new THREE.Scene(),
+  avatar = new THREE.Group(),
+  shared = new THREE.MeshStandardMaterial(),
+  privateMaterial = new THREE.MeshStandardMaterial(),
+  geometry = new THREE.BoxGeometry();
+scene.add(avatar);
+avatar.add(
+  new THREE.Mesh(geometry, [shared, privateMaterial]),
+  new THREE.Mesh(geometry, privateMaterial),
+);
+let geometryDisposals = 0,
+  sharedDisposals = 0,
+  privateDisposals = 0;
+geometry.addEventListener('dispose', () => geometryDisposals++);
+shared.addEventListener('dispose', () => sharedDisposals++);
+privateMaterial.addEventListener('dispose', () => privateDisposals++);
+releaseAvatar(avatar, new Set([shared]));
+assert.equal(avatar.parent, null);
+assert.equal(geometryDisposals, 1);
+assert.equal(privateDisposals, 1);
+assert.equal(
+  sharedDisposals,
+  0,
+  'Town materials must remain usable for other players and scenery',
+);
+shared.dispose();
+console.log(
+  'PASS: avatar removal releases private geometry/materials exactly once and preserves shared town materials.',
+);

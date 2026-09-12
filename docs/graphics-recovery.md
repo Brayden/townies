@@ -4,12 +4,12 @@ The game starts at its highest quality preset on desktop and mobile. It no longe
 
 ## Quality levels
 
-| Level | Resolution cap | Render-pixel budget | Shadows |
-| --- | --- | --- | --- |
-| High | 2× device-independent resolution | 3 million | On |
-| Balanced | 2× | 2 million | Off |
-| Light | 1.5× | 1.5 million | Off |
-| Low | 1× | 1 million | Off |
+| Level    | Resolution cap                   | Render-pixel budget | Shadows |
+| -------- | -------------------------------- | ------------------- | ------- |
+| High     | 2× device-independent resolution | 3 million           | On      |
+| Balanced | 2×                               | 2 million           | Off     |
+| Light    | 1.5×                             | 1.5 million         | Off     |
+| Low      | 1×                               | 1 million           | Off     |
 
 Actual resolution also respects device pixel ratio and WebGL texture/viewport limits. The first downgrade removes shadow rendering and releases its targets while preserving phone sharpness. Lower resolutions are used only when poor performance persists. Quality changes resize the existing framebuffer and update materials without rebuilding the town, camera, player, or connection. Context antialiasing is immutable: high startup requests it, while a context created by the compatibility fallback retains its no-antialiasing setting even if quality later rises.
 

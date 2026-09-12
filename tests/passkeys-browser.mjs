@@ -1,51 +1,206 @@
 import assert from 'node:assert/strict';
-import {build} from 'esbuild';
-import {readFile} from 'node:fs/promises';
-const base=process.env.TOWNIES_TEST_URL??'http://localhost:3012';
-if(!/^http:\/\/(localhost|127\.0\.0\.1):/.test(base))throw new Error('Passkey tests require a disposable local database.');
-const {chromium}=await import(process.env.PLAYWRIGHT_MODULE??'/Users/brayden/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs');
-const bundle=await build({stdin:{contents:`import React from 'react';import {createRoot} from 'react-dom/client';import AccountGate,{AccountSettings} from './app/account/AccountGate';createRoot(document.getElementById('root')).render(<AccountGate><main style={{padding:24,maxWidth:460,margin:'auto'}}><AccountSettings/></main></AccountGate>);`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,format:'iife',write:false,define:{'process.env.NODE_ENV':'"production"'}});
-const css=(await readFile('app/globals.css','utf8')).split('\n').slice(5).join('\n');
-const browser=await chromium.launch({executablePath:process.env.CHROME_PATH??'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
-try{
- const context=await browser.newContext(),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.route('**/passkey-fixture',r=>r.fulfill({contentType:'text/html',body:`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style><div id="root"></div><script>${bundle.outputFiles[0].text}</script>`}));
- const cdp=await context.newCDPSession(page);await cdp.send('WebAuthn.enable');
- const {authenticatorId}=await cdp.send('WebAuthn.addVirtualAuthenticator',{options:{protocol:'ctap2',transport:'internal',hasResidentKey:true,hasUserVerification:true,isUserVerified:true,automaticPresenceSimulation:true}});
- await page.goto(base+'/passkey-fixture');
- const stamp=Date.now(),email=`passkey-${stamp}@example.com`,password='Test river meadow lantern 42!';
- await page.getByLabel('Your name',{exact:true}).fill('Passkey Tester');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);
- await page.getByRole('button',{name:'Create account & play',exact:true}).click();await page.getByText(email,{exact:true}).waitFor();
- const identity=await page.evaluate(async()=>{const r=await fetch('/api/account');return (await r.json()).user.id});
- await page.getByLabel('Passkey name',{exact:false}).fill('Test Mac');await page.getByRole('button',{name:'Add a passkey',exact:true}).click();await page.getByText('Passkey added. Use “Log in with a passkey” next time.',{exact:true}).waitFor();
- const keys=await page.evaluate(async()=>{const r=await fetch('/api/auth/passkey/list-user-passkeys');return r.json()});assert.equal(keys.length,1);const keyId=keys[0].id;
- assert.equal((await cdp.send('WebAuthn.getCredentials',{authenticatorId})).credentials.length,1);
- console.log('PASS: the actual Settings flow registers a discoverable passkey against local D1.');
- await page.getByRole('button',{name:'Log out',exact:true}).click();await page.getByRole('button',{name:'Log in with a passkey',exact:true}).waitFor();
- let assertion;
- page.on('request',r=>{if(r.url().endsWith('/passkey/verify-authentication'))assertion=r.postDataJSON()});
- await page.getByRole('button',{name:'Log in with a passkey',exact:true}).click();await page.getByText(email,{exact:true}).waitFor();
- assert.equal(await page.evaluate(async()=>{const r=await fetch('/api/account');return (await r.json()).user.id}),identity);
- console.log('PASS: passwordless sign-in returns the same account identity.');
- await page.getByRole('button',{name:'Log out',exact:true}).click();await page.getByRole('button',{name:'Log in with a passkey',exact:true}).waitFor();
- const replay=await context.request.post(base+'/api/auth/passkey/verify-authentication',{data:assertion,headers:{Origin:base}});assert.ok(replay.status()>=400);
- const unauthorized=await context.request.get(base+'/api/auth/passkey/generate-register-options');assert.equal(unauthorized.status(),401);
- const cross=await context.request.post(base+'/api/auth/passkey/verify-authentication',{data:assertion,headers:{Origin:'https://wrong.example'}});assert.equal(cross.status(),403);
- console.log('PASS: consumed assertions cannot be replayed, registration requires login, and foreign origins are rejected.');
- // A second local account cannot enumerate or delete the first account's passkey.
- const other=await browser.newContext();const signup=await other.request.post(base+'/api/auth/sign-up/email',{data:{name:'Other Tester',email:`other-${stamp}@example.com`,password},headers:{Origin:base}});assert.equal(signup.status(),200);
- assert.deepEqual(await (await other.request.get(base+'/api/auth/passkey/list-user-passkeys')).json(),[]);
- const denied=await other.request.post(base+'/api/auth/passkey/delete-passkey',{data:{id:keyId},headers:{Origin:base}});assert.ok(denied.status()>=400);await other.close();
- // Cancel a ceremony, then use the unchanged password path.
- await page.evaluate(()=>{window.realCredentialGet=navigator.credentials.get.bind(navigator.credentials);navigator.credentials.get=async()=>{throw new DOMException('Cancelled','NotAllowedError')}});
- await page.getByRole('button',{name:'Log in with a passkey',exact:true}).click();await page.getByRole('alert').waitFor();
- await page.evaluate(()=>navigator.credentials.get=window.realCredentialGet);
- await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Log in & play',exact:true}).click();await page.getByText(email,{exact:true}).waitFor();
- await page.getByRole('button',{name:'Remove Test Mac',exact:true}).click();await page.getByRole('button',{name:'Remove',exact:true}).click();await page.getByText('Passkey removed. You can still sign in with your password.',{exact:true}).waitFor();
- assert.deepEqual(await (await context.request.get(base+'/api/auth/passkey/list-user-passkeys')).json(),[]);
- await page.getByRole('button',{name:'Log out',exact:true}).click();await page.getByRole('button',{name:'Log in with a passkey',exact:true}).click();await page.getByRole('alert').waitFor();
- assert.equal((await (await context.request.get(base+'/api/account')).json()).user,null);
- assert.deepEqual(errors,[]);
- console.log('PASS: cross-account protection, cancellation/password fallback, passkey removal and rejection of a removed passkey.');
- await context.close();
-}finally{await browser.close()}
+import { build } from 'esbuild';
+import { readFile } from 'node:fs/promises';
+const base = process.env.TOWNIES_TEST_URL ?? 'http://localhost:3012';
+if (!/^http:\/\/(localhost|127\.0\.0\.1):/.test(base))
+  throw new Error('Passkey tests require a disposable local database.');
+import { chromium, browserOptions } from './helpers/browser.mjs';
+const bundle = await build({
+  stdin: {
+    contents: `import React from 'react';import {createRoot} from 'react-dom/client';import AccountGate,{AccountSettings} from './app/account/AccountGate';createRoot(document.getElementById('root')).render(<AccountGate><main style={{padding:24,maxWidth:460,margin:'auto'}}><AccountSettings/></main></AccountGate>);`,
+    resolveDir: process.cwd(),
+    loader: 'tsx',
+  },
+  bundle: true,
+  format: 'iife',
+  write: false,
+  define: { 'process.env.NODE_ENV': '"production"' },
+});
+const css = (await readFile('app/globals.css', 'utf8'))
+  .split('\n')
+  .slice(5)
+  .join('\n');
+const browser = await chromium.launch({ ...browserOptions });
+try {
+  const context = await browser.newContext(),
+    page = await context.newPage(),
+    errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.route('**/passkey-fixture', (r) =>
+    r.fulfill({
+      contentType: 'text/html',
+      body: `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style><div id="root"></div><script>${bundle.outputFiles[0].text}</script>`,
+    }),
+  );
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('WebAuthn.enable');
+  const { authenticatorId } = await cdp.send(
+    'WebAuthn.addVirtualAuthenticator',
+    {
+      options: {
+        protocol: 'ctap2',
+        transport: 'internal',
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+        automaticPresenceSimulation: true,
+      },
+    },
+  );
+  await page.goto(base + '/passkey-fixture');
+  const stamp = Date.now(),
+    email = `passkey-${stamp}@example.com`,
+    password = 'Test river meadow lantern 42!';
+  await page.getByLabel('Your name', { exact: true }).fill('Passkey Tester');
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page
+    .getByRole('button', { name: 'Create account & play', exact: true })
+    .click();
+  await page.getByText(email, { exact: true }).waitFor();
+  const identity = await page.evaluate(async () => {
+    const r = await fetch('/api/account');
+    return (await r.json()).user.id;
+  });
+  await page.getByLabel('Passkey name', { exact: false }).fill('Test Mac');
+  await page
+    .getByRole('button', { name: 'Add a passkey', exact: true })
+    .click();
+  await page
+    .getByText('Passkey added. Use “Log in with a passkey” next time.', {
+      exact: true,
+    })
+    .waitFor();
+  const keys = await page.evaluate(async () => {
+    const r = await fetch('/api/auth/passkey/list-user-passkeys');
+    return r.json();
+  });
+  assert.equal(keys.length, 1);
+  const keyId = keys[0].id;
+  assert.equal(
+    (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials
+      .length,
+    1,
+  );
+  console.log(
+    'PASS: the actual Settings flow registers a discoverable passkey against local D1.',
+  );
+  await page.getByRole('button', { name: 'Log out', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Log in with a passkey', exact: true })
+    .waitFor();
+  let assertion;
+  page.on('request', (r) => {
+    if (r.url().endsWith('/passkey/verify-authentication'))
+      assertion = r.postDataJSON();
+  });
+  await page
+    .getByRole('button', { name: 'Log in with a passkey', exact: true })
+    .click();
+  await page.getByText(email, { exact: true }).waitFor();
+  assert.equal(
+    await page.evaluate(async () => {
+      const r = await fetch('/api/account');
+      return (await r.json()).user.id;
+    }),
+    identity,
+  );
+  console.log('PASS: passwordless sign-in returns the same account identity.');
+  await page.getByRole('button', { name: 'Log out', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Log in with a passkey', exact: true })
+    .waitFor();
+  const replay = await context.request.post(
+    base + '/api/auth/passkey/verify-authentication',
+    { data: assertion, headers: { Origin: base } },
+  );
+  assert.ok(replay.status() >= 400);
+  const unauthorized = await context.request.get(
+    base + '/api/auth/passkey/generate-register-options',
+  );
+  assert.equal(unauthorized.status(), 401);
+  const cross = await context.request.post(
+    base + '/api/auth/passkey/verify-authentication',
+    { data: assertion, headers: { Origin: 'https://wrong.example' } },
+  );
+  assert.equal(cross.status(), 403);
+  console.log(
+    'PASS: consumed assertions cannot be replayed, registration requires login, and foreign origins are rejected.',
+  );
+  // A second local account cannot enumerate or delete the first account's passkey.
+  const other = await browser.newContext();
+  const signup = await other.request.post(base + '/api/auth/sign-up/email', {
+    data: {
+      name: 'Other Tester',
+      email: `other-${stamp}@example.com`,
+      password,
+    },
+    headers: { Origin: base },
+  });
+  assert.equal(signup.status(), 200);
+  assert.deepEqual(
+    await (
+      await other.request.get(base + '/api/auth/passkey/list-user-passkeys')
+    ).json(),
+    [],
+  );
+  const denied = await other.request.post(
+    base + '/api/auth/passkey/delete-passkey',
+    { data: { id: keyId }, headers: { Origin: base } },
+  );
+  assert.ok(denied.status() >= 400);
+  await other.close();
+  // Cancel a ceremony, then use the unchanged password path.
+  await page.evaluate(() => {
+    window.realCredentialGet = navigator.credentials.get.bind(
+      navigator.credentials,
+    );
+    navigator.credentials.get = async () => {
+      throw new DOMException('Cancelled', 'NotAllowedError');
+    };
+  });
+  await page
+    .getByRole('button', { name: 'Log in with a passkey', exact: true })
+    .click();
+  await page.getByRole('alert').waitFor();
+  await page.evaluate(
+    () => (navigator.credentials.get = window.realCredentialGet),
+  );
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page
+    .getByRole('button', { name: 'Log in & play', exact: true })
+    .click();
+  await page.getByText(email, { exact: true }).waitFor();
+  await page
+    .getByRole('button', { name: 'Remove Test Mac', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
+  await page
+    .getByText('Passkey removed. You can still sign in with your password.', {
+      exact: true,
+    })
+    .waitFor();
+  assert.deepEqual(
+    await (
+      await context.request.get(base + '/api/auth/passkey/list-user-passkeys')
+    ).json(),
+    [],
+  );
+  await page.getByRole('button', { name: 'Log out', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Log in with a passkey', exact: true })
+    .click();
+  await page.getByRole('alert').waitFor();
+  assert.equal(
+    (await (await context.request.get(base + '/api/account')).json()).user,
+    null,
+  );
+  assert.deepEqual(errors, []);
+  console.log(
+    'PASS: cross-account protection, cancellation/password fallback, passkey removal and rejection of a removed passkey.',
+  );
+  await context.close();
+} finally {
+  await browser.close();
+}

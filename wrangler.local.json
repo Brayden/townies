@@ -1,1 +1,40 @@
-{"name":"townies-local","compatibility_date":"2026-05-15","d1_databases":[{"binding":"DB","database_name":"site-creator-d1","database_id":"00000000-0000-4000-8000-000000000000","migrations_dir":"drizzle"}]}
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "townies-local",
+  "main": "worker.ts",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "TOWNIES_AUTH_MODE": "account",
+    "BETTER_AUTH_URL": "http://localhost:3002",
+    "TOWNIES_MAINTENANCE": "false"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "townies-local",
+      "database_id": "00000000-0000-4000-8000-000000000000",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "TOWNS",
+        "class_name": "Town"
+      },
+      {
+        "name": "RESIDENTS",
+        "class_name": "ResidentCoordinator"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "town-objects-v1",
+      "new_sqlite_classes": ["Town", "ResidentCoordinator"]
+    }
+  ]
+}

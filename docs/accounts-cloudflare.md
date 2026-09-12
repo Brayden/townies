@@ -4,7 +4,7 @@ Townies uses email/password accounts before loading the game. Account creation s
 
 World storage now runs in per-town Durable Objects. See [Durable towns](durable-towns.md) before changing database migrations or rolling back deployments.
 
-## Deployment boundary
+## Maintainer-only deployment boundary
 
 - Worker: `townies` (renamed in place; same immutable Worker ID)
 - URL: https://townies.town
@@ -15,20 +15,13 @@ The Cloudflare world remains separate from the original Sites database. The cust
 
 ## Local development
 
-Create an ignored `.dev.vars` with `BETTER_AUTH_SECRET` (a random secret), `BETTER_AUTH_URL="http://localhost:3002"`, and `TOWNIES_AUTH_MODE="account"`. Never commit this file.
-
-```sh
-npx wrangler d1 migrations apply DB --local --config wrangler.cloudflare.json
-npm run dev:cloudflare
-```
-
-Run `node tests/accounts-api.mjs` against that local server. The test creates disposable local accounts/towns and rejects remote URLs. It covers registration, login, logout and session revocation, invitation joining, home ownership, persisted residents, cross-origin rejection, and rejection of unauthenticated or forged-header requests. For a built Worker, supply the same absolute `--persist-to` directory used by local migrations, and override `BETTER_AUTH_URL` to its test port.
+Run `npm ci`, `npm run setup`, and `npm run dev`. The setup creates an ignored development secret and local database under `outputs/local/`; no Cloudflare account is needed. Use `npm run test:integration` for isolated account, WebSocket, migration and passkey fixtures. See [testing](testing.md).
 
 ## Publishing updates
 
 ```sh
 npm run build:cloudflare
-npx wrangler d1 migrations apply DB --remote --config wrangler.cloudflare.json
+npx wrangler d1 migrations apply DB --remote --config wrangler.production.json
 npm run deploy:cloudflare
 ```
 

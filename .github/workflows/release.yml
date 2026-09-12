@@ -1,0 +1,90 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Reviewed full commit SHA on main
+        required: true
+        type: string
+      environment:
+        description: Deployment target
+        required: true
+        default: staging
+        type: choice
+        options: [staging, production]
+      apply_migrations:
+        description: Apply reviewed pending shared D1 migrations before deployment
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ inputs.environment }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    name: Validate release candidate
+    if: github.repository == 'Brayden/townies' && github.actor == 'Brayden' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select a reviewed main commit
+        env:
+          RELEASE_COMMIT: ${{ inputs.commit }}
+        run: |
+          [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          git merge-base --is-ancestor "$RELEASE_COMMIT" origin/main
+          git checkout --detach "$RELEASE_COMMIT"
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm audit --audit-level=high
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run test:integration
+  deploy:
+    name: Approved deployment
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ inputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Validate environment configuration
+        env:
+          RELEASE_ENABLED: ${{ vars.TOWNIES_RELEASE_ENABLED }}
+          DEPLOY_CONFIG: ${{ vars.TOWNIES_DEPLOY_CONFIG }}
+          DEPLOY_TARGET: ${{ inputs.environment }}
+        run: node scripts/release-config.mjs
+      - run: npm ci
+      - name: Build reviewed deployment
+        env:
+          TOWNIES_WRANGLER_CONFIG: outputs/release/wrangler.json
+          DEPLOY_TARGET: ${{ inputs.environment }}
+        run: node scripts/build.mjs "--$DEPLOY_TARGET"
+      - name: Apply reviewed shared migrations
+        if: inputs.apply_migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler d1 migrations apply DB --remote --config outputs/release/wrangler.json
+      - name: Deploy approved build
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          DEPLOY_TARGET: ${{ inputs.environment }}
+        run: node scripts/deploy-cloudflare.mjs "--$DEPLOY_TARGET"

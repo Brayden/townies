@@ -1,0 +1,10 @@
+# Owner approval is enforced by the repository's default-branch ruleset.
+* @Brayden
+/.github/ @Brayden
+/scripts/ @Brayden
+/db/ @Brayden
+/server/towns/ @Brayden
+/drizzle/ @Brayden
+/LICENSE @Brayden
+/NOTICE @Brayden
+/TRADEMARKS.md @Brayden

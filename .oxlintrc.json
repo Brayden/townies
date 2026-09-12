@@ -29,7 +29,10 @@
     "build/**",
     "dist/**",
     "coverage/**",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    "outputs/**",
+    "work/**",
+    ".wrangler/**"
   ],
   "rules": {
     "no-array-constructor": "error",

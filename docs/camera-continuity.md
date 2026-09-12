@@ -23,7 +23,7 @@ again still refocuses it.
 Following uses ground coordinates without copying the avatar's animated height.
 
 Validation: `npx tsc --noEmit`, `node tests/camera-browser.mjs`,
-`node tests/graphics-browser.mjs`, and `npm run build:cloudflare`.
+`node tests/graphics-browser.mjs`, and `npm run build`.
 The browser tests use isolated local scenery and test-only camera observation;
 they never join a town or modify a saved game. They cover real drag gestures,
 position corrections, snapshot reordering, genuine house upgrades, focus/reset,
@@ -33,3 +33,5 @@ loss, restoration, retries and disposal after these lifecycle changes.
 This addresses reproducible reset paths in the code, not every possible source
 of uneven frames. GPU load and large geometry changes can still cause a frame
 pause; genuine server corrections still correct the character's position.
+
+Frame durations are clamped to zero when a queued animation timestamp predates a scene rebuild. This prevents a negative movement step immediately after rebuilding while a key is held.
