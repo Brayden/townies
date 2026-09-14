@@ -21,7 +21,11 @@ import { placementError } from '../app/game/placement.ts';
 const sql = new DatabaseSync(':memory:');
 sql.exec('PRAGMA foreign_keys=ON');
 for (const f of readdirSync(new URL('../drizzle/', import.meta.url))
-  .filter((f) => f.endsWith('.sql') && Number(f.slice(0, 4)) <= 15)
+  .filter(
+    (f) =>
+      f.endsWith('.sql') &&
+      (Number(f.slice(0, 4)) <= 15 || f === '0020_tired_nehzno.sql'),
+  )
   .sort())
   sql.exec(readFileSync(new URL('../drizzle/' + f, import.meta.url), 'utf8'));
 const d = {

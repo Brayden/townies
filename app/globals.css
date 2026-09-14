@@ -218,3 +218,21 @@ body:has(.housing-modal) [data-slot=dialog-overlay]{backdrop-filter:none;backgro
 .town-work-job{display:flex;align-items:center;gap:10px;width:100%;padding:9px 6px;border:0;border-radius:10px;background:transparent;color:inherit;text-align:left;cursor:pointer}.town-work-job:hover:not(:disabled){background:#eee9d5}.town-work-job:disabled{cursor:default}.town-work-icon{display:grid;place-items:center;width:32px;height:32px;flex-shrink:0;background:#ede5cf;border-radius:9px;color:#8c7043}.town-work-icon.is-complete{background:#dfebd6;color:#46713b}
 .town-work-details{display:grid;gap:4px;min-width:0;flex:1}.town-work-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;line-height:17px}.town-work-title>span{font-size:12px;white-space:nowrap;color:#657b50}.town-work-details small{font-size:11px;color:#737762}.town-work-progress{display:block;height:5px;border-radius:4px;background:#e4dfcb;overflow:hidden}.town-work-progress>span{display:block;height:100%;border-radius:4px;background:#8ea563;transition:width .25s}
 @media(max-width:700px){.town-work-trigger{font-size:11px;gap:4px;padding:6px;margin-top:5px;line-height:15px}.town-work-trigger>svg{width:13px}.town-work-menu{max-height:min(620px,calc(100dvh - 24px),var(--available-height));padding:13px}}
+
+/* Civic choices keep the lot, cost, and proposed activities together. */
+.community-square-panel { margin: 24px 0; padding: 20px; border: 1px solid #c9d3b6; border-radius: 18px; background: #f5f4e9; }
+.square-plan { display: block; width: 100%; max-height: 290px; margin: 16px auto; border-radius: 12px; }
+.square-lot-options, .venue-catalog { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin: 14px 0; }
+.square-lot-options button, .venue-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; white-space: normal; min-width: 0; }
+.venue-choice { padding: 14px; border: 1px solid #c9d3b6; border-radius: 12px; background: #fffdf5; color: #384939; cursor: pointer; }
+.venue-choice[aria-pressed="true"], .square-lot-options [aria-pressed="true"] { border-color: #537c62; outline: 2px solid #537c62; background: #e6eedb; }
+.venue-choice small, .square-lot-options small { font-size: 13px; }
+.venue-choice:focus-visible, .square-lot-options button:focus-visible { outline: 3px solid #ae7634; outline-offset: 3px; }
+.venue-detail { padding: 18px; border: 1px solid #d6cfb6; border-radius: 14px; background: #fffdf7; }
+.venue-detail h4 { font-size: 22px; margin: 0 0 8px; }
+.venue-possibilities { display: grid; gap: 14px; margin: 16px 0; }
+.venue-possibilities > div { border-left: 3px solid #91a577; padding-left: 12px; }
+.venue-possibilities strong, .venue-possibilities .eyebrow { display: block; }
+.venue-possibilities p { margin: 6px 0; }
+@media (max-width: 600px) { .community-square-panel { padding: 14px; } .venue-catalog { grid-template-columns: repeat(2,minmax(0,1fr)); } .square-lot-options { grid-template-columns: 1fr; } }
+.square-lot-options, .venue-catalog { border: 0; padding: 0; min-width: 0; }

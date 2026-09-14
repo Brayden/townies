@@ -1,4 +1,6 @@
 'use client';
+import {SQUARE_LOTS,hasCommunitySquare} from './communitySquare';
+import {plotOccupied} from './charters';
 import {MAP_ZOOMS,minimapWorkMarkers} from './minimapWork';
 import {isMaintenance} from './maintenance';
 import {FARM_BEDS,PICNIC,cropStage} from './sharedLife';
@@ -48,6 +50,7 @@ export default function MiniMap({data,getPosition,onLook,level=0}:{level?:number
     {farmIsOpen(data.planning)&&!route&&FARM_BEDS.map(b=>{const stage=cropStage(data.life?.plots.find(p=>p.id===b.id),Date.now());return <rect key={b.id} x={b.x-1.2} y={b.z-1.2} width="2.4" height="2.4" fill={stage==='ready'?'#f4ce65':stage==='thirsty'?'#70b8d1':stage==='growing'?'#567c42':'#97764e'}><title>{`${b.name}: ${stage}`}</title></rect>})}
     {HOMES.map(h=><rect key={h.id} x={h.x-2.3} y={h.z-1.8} width="4.6" height="3.6" rx=".5" fill={route?'#d4d3b4':h.id===data.resident.home?'#eac16c':h.roof} stroke="#647451" strokeWidth=".3"/>)}
     {GARDEN_AREAS.map(a=><rect key={a.id} x={a.x-a.width/2} y={a.z-a.depth/2} width={a.width} height={a.depth} rx=".5" fill="#83a765" stroke="#5c7b46" strokeWidth=".4"><title>{a.name}</title></rect>)}
+    {hasCommunitySquare(data.planning)&&SQUARE_LOTS.filter(p=>!plotOccupied(p.id,data.planning)).map(p=><rect key={p.id} x={p.x-p.width/2} y={p.z-p.depth/2} width={p.width} height={p.depth} fill="#e7ce86" stroke="#7b6a44" strokeDasharray="1 1" strokeWidth=".4"><title>{p.name} · open for a resident vote</title></rect>)}
     {buildings.map(b=>{const Icon=b.action==='pets'?PawPrint:b.id==='townhall'?Landmark:b.id==='clothing'?Shirt:b.id==='general'?Store:b.id==='cafe'?Coffee:b.id==='school'?GraduationCap:b.id==='library'?BookOpen:b.id==='gardenclub'?Sprout:Mailbox;return <g key={b.id} role="button" tabIndex={0} aria-label={`Look at ${b.name}`} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();onLook(b.x,b.z)}}} style={{cursor:'pointer'}}><title>{b.name}</title><rect x={b.x-b.width/2} y={b.z-b.depth/2} width={b.width} height={b.depth} rx=".5" fill={b.color} stroke={b.roof} strokeWidth=".5"/><Icon opacity={maintenance?.35:1} x={b.x-7*unit} y={b.z-7*unit} width={14*unit} height={14*unit} color="#354b48" strokeWidth={2.5}/></g>})}
     {data.planning.territories.includes('island')&&FERRY_STOPS.map(f=><circle key={f.id} cx={f.x} cy={f.z} r={3*unit} fill="#eecc7b" stroke="#48677b" strokeWidth={unit}><title>{f.name}</title></circle>)}
     <circle r="1.6" fill="#79adb6"/>

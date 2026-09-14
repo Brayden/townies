@@ -1,3 +1,4 @@
+import {SQUARE_FRONTAGES,hasCommunitySquare,squareLot} from '../app/game/communitySquare.ts';
 import {placementError,initialPlacement} from '../app/game/placement.ts';
 import {INSTITUTIONS,TERRITORIES,REDEVELOPMENTS,nodeById,plotById,proposalTitle,type Institution,type PlanProposal,type PlanningState,type ParcelBuilding} from '../app/game/charters.ts';
 import {readMayor} from './elections.ts';
@@ -9,18 +10,18 @@ export async function settlePlans(d:D1Database,town:string,now:number){
 export async function readPlanning(d:D1Database,town:string,resident:string,now=Date.now()):Promise<PlanningState>{
  await settlePlans(d,town,now);
  const [farm,land,institutions,buildings,plans]=await Promise.all([
-  d.prepare('SELECT farm_funded FROM towns WHERE id=?').bind(town).first<{farm_funded:number}>(),
+  d.prepare('SELECT farm_funded,square_version FROM towns WHERE id=?').bind(town).first<{farm_funded:number;square_version:number}>(),
   d.prepare('SELECT id FROM town_territories WHERE town_id=?').bind(town).all<{id:string}>(),
   d.prepare('SELECT id,node,plot,x,z,rotation FROM charter_institutions WHERE town_id=?').bind(town).all<Institution>(),
   d.prepare('SELECT plot,kind,x,z,rotation FROM parcel_buildings WHERE town_id=?').bind(town).all<ParcelBuilding>(),
   d.prepare('SELECT p.id,p.kind,p.institution,p.option,p.from_node AS fromNode,p.from_plot AS fromPlot,p.cost,p.funded,p.status,p.created,p.closes,p.electorate,p.quorum,p.name,COUNT(CASE WHEN v.vote=1 THEN 1 END) AS yes,COUNT(CASE WHEN v.vote=0 THEN 1 END) AS no,(SELECT vote FROM plan_voters WHERE plan_id=p.id AND resident_id=?) AS myVote,EXISTS(SELECT 1 FROM plan_voters WHERE plan_id=p.id AND resident_id=?) AS eligible FROM town_plans p LEFT JOIN plan_voters v ON v.plan_id=p.id WHERE p.town_id=? GROUP BY p.id ORDER BY p.created DESC,p.id DESC LIMIT 12').bind(resident,resident,town).all<PlanProposal>()
  ]);
- return {farmFunded:farm?.farm_funded??0,territories:land.results.map(t=>t.id),institutions:INSTITUTIONS.map(i=>institutions.results.find(r=>r.id===i.id)??{id:i.id,node:'root',plot:i.plot}),buildings:buildings.results,proposals:plans.results.map(p=>({...p,eligible:!!p.eligible}))};
+ return {squareVersion:farm?.square_version??0,farmFunded:farm?.farm_funded??0,territories:land.results.map(t=>t.id),institutions:INSTITUTIONS.map(i=>institutions.results.find(r=>r.id===i.id)??{id:i.id,node:'root',plot:i.plot,...(farm?.square_version===1?(i.id==='library'?SQUARE_FRONTAGES.library:i.id==='towncenter'?{x:0,z:7,rotation:0}:{}):{})}),buildings:buildings.results,proposals:plans.results.map(p=>({...p,eligible:!!p.eligible}))};
 }
 export function validatePlan(s:PlanningState,b:Record<string,unknown>){
  const kind=b.kind,institution=s.institutions.find(i=>i.id===b.institution),plot=institution?plotById(institution.plot):null;
  if(kind==='expand'){const t=TERRITORIES.find(t=>t.id===b.option);if(!t||s.territories.includes(t.id))return {error:'Choose territory the town does not yet own.'};return {kind,option:t.id,institution:null,fromNode:null,fromPlot:null,cost:t.cost} as const;}
- if(kind==='build'){const building=REDEVELOPMENTS.find(k=>k.id===b.option);if(!building)return {error:'Choose a community building.'};return {kind,option:building.id,institution:null,fromNode:null,fromPlot:null,cost:building.cost} as const;}
+ if(kind==='build'){const building=REDEVELOPMENTS.find(k=>k.id===b.option);if(!building)return {error:'Choose a community building.'};const lot=squareLot(b.fromPlot);if(b.fromPlot&&(!lot||!hasCommunitySquare(s)))return {error:'Choose an available square lot.'};if(lot&&s.buildings.some(p=>p.plot===lot.id))return {error:'That square lot is already occupied.'};return {kind,option:building.id,institution:null,fromNode:null,fromPlot:typeof b.fromPlot==='string'?b.fromPlot:null,cost:building.cost} as const;}
  if(!institution||!plot)return {error:'Choose a public institution.'};
  if(kind==='branch'){const node=nodeById(String(b.option));if(!node||node.institution!==institution.id||node.parent!==institution.node)return {error:'That branch is not a possible next step. Earlier charter choices cannot be undone.'};return {kind,option:node.id,institution:institution.id,fromNode:institution.node,fromPlot:institution.plot,cost:node.cost} as const;}
  if(kind==='relocate')return {kind,option:'free',institution:institution.id,fromNode:institution.node,fromPlot:institution.plot,cost:800+(institution.node==='root'?0:600)} as const;
@@ -50,7 +51,7 @@ export async function planningAction(d:D1Database,r:Citizen,b:Record<string,unkn
   const s=await readPlanning(d,r.town_id,r.id,now),p=s.proposals.find(p=>p.id===b.plan);
   if(!p||p.status!=='ready'||p.funded!==p.cost||p.kind==='expand')return {error:'This building must pass its vote and be fully funded before placement.',status:409};
   const v={x:b.x as number,z:b.z as number,rotation:b.rotation as number},error=placementError(s,p,v);if(error)return {error,status:400};
-  const apply=p.kind==='build'?d.prepare('INSERT INTO parcel_buildings(town_id,plot,kind,x,z,rotation) SELECT ?,?,?,?,?,? WHERE changes()=1').bind(r.town_id,`placed-${p.id}`,p.option,v.x,v.z,v.rotation):d.prepare('INSERT INTO charter_institutions(town_id,id,node,plot,x,z,rotation) SELECT ?,?,?,?,?,?,? WHERE changes()=1 ON CONFLICT(town_id,id) DO UPDATE SET node=excluded.node,plot=excluded.plot,x=excluded.x,z=excluded.z,rotation=excluded.rotation').bind(r.town_id,p.institution,p.kind==='branch'?p.option:p.fromNode,p.fromPlot,v.x,v.z,v.rotation);
+  const apply=p.kind==='build'?d.prepare('INSERT INTO parcel_buildings(town_id,plot,kind,x,z,rotation) SELECT ?,?,?,?,?,? WHERE changes()=1').bind(r.town_id,p.fromPlot??`placed-${p.id}`,p.option,v.x,v.z,v.rotation):d.prepare('INSERT INTO charter_institutions(town_id,id,node,plot,x,z,rotation) SELECT ?,?,?,?,?,?,? WHERE changes()=1 ON CONFLICT(town_id,id) DO UPDATE SET node=excluded.node,plot=excluded.plot,x=excluded.x,z=excluded.z,rotation=excluded.rotation').bind(r.town_id,p.institution,p.kind==='branch'?p.option:p.fromNode,p.fromPlot,v.x,v.z,v.rotation);
   const result=await d.batch([
    d.prepare("UPDATE town_plans SET status='completed' WHERE id=? AND town_id=? AND status='ready' AND funded=cost").bind(p.id,r.town_id),
    d.prepare('INSERT INTO civic_history(id,town_id,name,kind,project,amount,created) SELECT ?,?,?,?,?,0,? WHERE changes()=1').bind(crypto.randomUUID(),r.town_id,r.name,'plan-completed',proposalTitle(p),now),apply
