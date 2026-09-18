@@ -1,38 +1,742 @@
 'use client';
-import {useState,useRef,useEffect} from 'react';
-import {MapPin,ArrowDown,Ship,Grid2X2,LockKeyhole,Check} from 'lucide-react';
-import {Progress} from '@/components/ui/progress';
-import {CHARTER_NODES,INSTITUTIONS,TERRITORIES,REDEVELOPMENTS,nodeById,institutionShape,locationOf,proposalTitle,proposalSite,type PlanProposal,type CharterNode} from './charters';
-import type {BuildingChoice} from './placement';
-import type {TownState} from './data';
-type Draft={kind:'branch'|'relocate'|'expand'|'build';institution?:string;option:string};
-type Props={initialDraft?:BuildingChoice|null;data:TownState;busy:boolean;onAction:(action:string,args:Record<string,unknown>)=>void;onLook:(x:number,z:number)=>void;onTravel:()=>void;onPreview:(choice:BuildingChoice,plan?:PlanProposal)=>void};
-export default function PlanningPanel({data,busy,onAction,onLook,onTravel,onPreview,initialDraft}:Props){
- const s=data.planning,isMayor=data.election.mayor?.id===data.resident.id,active=s.proposals.find(p=>['voting','approved','ready'].includes(p.status)),[draft,setDraft]=useState<Draft|null>(initialDraft?{...initialDraft,institution:initialDraft.institution??undefined}:null),review=useRef<HTMLElement>(null);
- useEffect(()=>{if(draft)review.current?.scrollIntoView({block:'nearest',behavior:'instant'})},[draft]);
- useEffect(()=>{if(active)setDraft(null)},[active?.id]);
- const inst=draft?.institution?s.institutions.find(i=>i.id===draft.institution):undefined,node=draft?.kind==='branch'?nodeById(draft.option):undefined;
- const cost=draft?.kind==='expand'?TERRITORIES.find(t=>t.id===draft.option)!.cost:draft?.kind==='branch'?node!.cost:draft?.kind==='build'?REDEVELOPMENTS.find(r=>r.id===draft.option)!.cost:draft?.kind==='relocate'?800+(inst?.node==='root'?0:600):0;
- const preview=(d:Draft)=>onPreview({...d,institution:d.institution??null});
- return <div className="planning-panel">
- <div className="planning-flow"><span>1 · Residents vote</span><ArrowDown size={16}/><span>2 · Town funds it</span><ArrowDown size={16}/><strong>3 · Mayor places it</strong></div>
- <p>Choose the building together, then place it on the town grid. Your town has <strong>{data.town.treasury.toLocaleString()} coins</strong>.</p>
- {active&&<section className="featured-project"><span className="eyebrow">{active.status==='voting'?'Resident planning vote':active.status==='ready'?'Paid for · ready to place':'Approved · funding construction'}</span><h3>{proposalTitle(active)}</h3><p>Proposed by {active.name} · {active.cost.toLocaleString()} town coins</p>
- {active.kind!=='expand'?<><p>The existing facility stays open until placement. The mayor chooses a suitable site and facing on owned land.</p><button className="primary-button full" onClick={()=>onPreview(active,active)}><Grid2X2 size={18}/>{active.status==='ready'&&isMayor?'Place building on the grid':'Preview full-size building on the grid'}</button></>:<button className="secondary-button full" onClick={()=>{const p=proposalSite(active);if(p)onLook(p.x,p.z)}}>View expansion area<MapPin size={16}/></button>}
- {active.status==='voting'?<><strong>{active.yes} support · {active.no} oppose</strong><p>Closes {new Date(active.closes).toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})}</p><p className="note">Needs 60% support and at least {active.quorum} of {active.electorate} eligible residents voting. The proposal is locked; your vote can change until polls close.</p>{active.eligible?<div className="button-row"><button className="primary-button" disabled={busy||active.myVote===1} onClick={()=>onAction('plan-vote',{plan:active.id,vote:true})}>{active.myVote===1?'Your vote: support':'Support'}</button><button className="secondary-button" disabled={busy||active.myVote===0} onClick={()=>onAction('plan-vote',{plan:active.id,vote:false})}>{active.myVote===0?'Your vote: oppose':'Oppose'}</button></div>:<p className="note">The voter roll was fixed when this proposal opened, using settled residents active in the preceding 14 days.</p>}</>:active.status==='approved'?<><div className="progress-label"><span>{active.funded.toLocaleString()} / {active.cost.toLocaleString()} coins funded</span><strong>{Math.floor(active.funded/active.cost*100)}%</strong></div><Progress className="progress" value={active.funded/active.cost*100} aria-label="Development funding"/>{isMayor&&<div className="button-row"><button className="primary-button" disabled={busy||data.town.treasury<Math.min(100,active.cost-active.funded)} onClick={()=>onAction('plan-fund',{plan:active.id,funded:active.funded,amount:Math.min(100,active.cost-active.funded)})}>Allocate {Math.min(100,active.cost-active.funded)}</button><button className="secondary-button" disabled={busy||data.town.treasury<active.cost-active.funded} onClick={()=>onAction('plan-fund',{plan:active.id,funded:active.funded,amount:active.cost-active.funded})}>Fund remaining {(active.cost-active.funded).toLocaleString()}</button></div>}</>:<p className="note">No more coins are needed. Open the grid to choose a location. Only the elected mayor can confirm placement.</p>}
- {active.status!=='ready'&&<button className="secondary-button full" disabled={busy||data.resident.coins<25} onClick={()=>onAction('support-project',{})}>Add 25 coins to the town fund</button>}</section>}
- <div className="tree-rule"><strong>One path per institution. One final outcome.</strong><p>First choose <b>one of three paths</b>. Later, choose <b>one of the two outcomes beneath that path</b>. The other paths close permanently. The library, town center, and harbor each choose independently.</p></div>
- {s.institutions.map(i=>{const current=institutionShape(i),site=locationOf(i),chosenRoot=i.node==='root'?null:nodeById(i.node)?.parent==='root'?i.node:nodeById(i.node)?.parent;
- const card=(n:CharterNode)=>{const chosen=n.id===i.node,ancestor=n.id===chosenRoot&&i.node!==n.id,available=n.parent===i.node,closed=chosenRoot&&(n.parent==='root'?n.id!==chosenRoot:n.parent!==chosenRoot||i.node!==chosenRoot&&n.id!==i.node);
- return <div className={`branch-card ${chosen?'is-current':''} ${closed?'is-closed':''}`} key={n.id}><div className="branch-status">{chosen?<><Check size={14}/>Current building</>:ancestor?<><Check size={14}/>Your chosen path</>:closed?<><LockKeyhole size={14}/>Permanently excluded</>:available?'Available next':'Future choice'}</div><strong>{n.name}</strong><p>{n.description}</p><span>{n.width} × {n.depth} squares · {n.cost.toLocaleString()} coins</span><button className="branch-preview" onClick={()=>preview({kind:'branch',institution:i.id,option:n.id})}><Grid2X2 size={15}/>Compare on grid</button>{available&&<button className="primary-button full" disabled={!isMayor||!!active||busy} onClick={()=>setDraft({kind:'branch',institution:i.id,option:n.id})}>Choose {n.parent==='root'?'this path':'this outcome'}</button>}</div>};
- return <details className="institution-card" key={i.id} open={i.id==='library'?true:undefined}><summary><span>{INSTITUTIONS.find(x=>x.id===i.id)!.name}<small>{current.name} · {current.width} × {current.depth} squares</small></span><ArrowDown size={18}/></summary>
- <div className="tree-origin"><strong>{INSTITUTIONS.find(x=>x.id===i.id)!.name}</strong><span>{i.node==='root'?'Your starting building':`Chosen path: ${nodeById(chosenRoot!)?.name}`}</span></div>
- <div className="tree-step">First fork · choose ONE of these three paths</div><div className="branch-tree">{CHARTER_NODES.filter(n=>n.institution===i.id&&n.parent==='root').map((first,index)=><div className={`tree-lane ${chosenRoot===first.id?'is-chosen':''}`} key={first.id}><span className="path-number">Path {index+1}</span>{card(first)}<div className="tree-fork"><ArrowDown size={17}/><span>Then choose ONE</span></div><div className="outcome-pair">{CHARTER_NODES.filter(n=>n.parent===first.id).map((n,index)=><div key={n.id}>{index===1&&<span className="tree-or">OR</span>}{card(n)}</div>)}</div></div>)}</div>
- <div className="institution-actions"><button className="secondary-button" onClick={()=>onLook(site.x,site.z)}><MapPin size={16}/>Find current building</button><button className="secondary-button" disabled={!isMayor||!!active||busy} onClick={()=>setDraft({kind:'relocate',institution:i.id,option:'free'})}>Propose relocation</button></div><p className="note">Relocation keeps the chosen path. Upgrades can also be placed at a larger site after approval and funding.</p></details>})}
- {!isMayor&&<p className="note">Everyone can compare buildings on the grid. The elected mayor opens proposals and places approved, fully funded buildings.</p>}{active&&<p className="note">Complete the active vote, funding, and placement before opening another proposal.</p>}
- <h3>Room to grow</h3><div className="territory-options">{TERRITORIES.map(t=><button key={t.id} className="territory-choice" disabled={!isMayor||!!active||busy||s.territories.includes(t.id)} onClick={()=>setDraft({kind:'expand',option:t.id})}><strong>{s.territories.includes(t.id)?'✓ ':''}{t.name}</strong><p>{t.description}</p><small>{s.territories.includes(t.id)?'Owned by your town':`${t.cost.toLocaleString()} coins · resident vote required`}</small></button>)}</div>
- {s.territories.includes('island')&&<button className="secondary-button full" onClick={onTravel}><Ship size={17}/>Walk to the ferry landing</button>}
- <details className="civic-section"><summary>New community buildings</summary><p>Use a vacated site or other clear owned land.</p>{REDEVELOPMENTS.map(r=><div className="vacant-site" key={r.id}><strong>{r.name} · {r.cost.toLocaleString()} coins</strong><div className="button-row"><button className="secondary-button" onClick={()=>preview({kind:'build',option:r.id})}>Preview on grid</button><button className="primary-button" disabled={!isMayor||!!active||busy} onClick={()=>setDraft({kind:'build',option:r.id})}>Propose building</button></div></div>)}</details>
- {draft&&!active&&<section className="planning-review" ref={review}><span className="eyebrow">Review before opening a seven-day vote</span><h3>{proposalTitle({...draft,institution:draft.institution??null})}</h3><p>{cost.toLocaleString()} town coins</p><p>{draft.kind==='branch'?`Choose ${node?.name} as this institution’s ${node?.parent==='root'?'only path. The other two paths will close':'final outcome. The other outcome will close'}.`:draft.kind==='relocate'?`Move ${institutionShape(inst!).name}. Its chosen branch stays the same and its previous site becomes free.`:draft.kind==='expand'?'Acquire this territory for your town. It becomes available when fully funded.':'Add this community building on suitable owned land.'}</p>{draft.kind!=='expand'&&<button className="secondary-button full" onClick={()=>preview(draft)}><Grid2X2 size={17}/>Compare size and try locations</button>}<p className="note">The vote locks the building and budget. No coins are spent yet. After approval and full funding, the mayor chooses its final location and facing.</p><div className="button-row"><button className="primary-button" disabled={!isMayor||busy} onClick={()=>onAction('plan-propose',draft)}>Open resident vote</button><button className="secondary-button" onClick={()=>setDraft(null)}>Cancel draft</button></div></section>}
- <details className="civic-section"><summary>Previous planning decisions</summary>{s.proposals.filter(p=>p.status==='completed'||p.status==='rejected').map(p=><div className="civic-record" key={p.id}><strong>{proposalTitle(p)}</strong><p>{p.status==='completed'?'Completed':'Did not pass'} · {p.yes} support / {p.no} oppose</p></div>)}</details></div>;
+import CommunitySquarePanel, {
+  BuildingPossibilities,
+} from './CommunitySquarePanel';
+import { communityBuilding } from './communityBuildings';
+import { squareLot } from './communitySquare';
+import { useState, useRef, useEffect } from 'react';
+import {
+  MapPin,
+  ArrowDown,
+  Ship,
+  Grid2X2,
+  LockKeyhole,
+  Check,
+} from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { plotOccupied } from './charters';
+import { SQUARE_LOTS, hasCommunitySquare } from './communitySquare';
+import { Progress } from '@/components/ui/progress';
+import {
+  CHARTER_NODES,
+  INSTITUTIONS,
+  TERRITORIES,
+  REDEVELOPMENTS,
+  nodeById,
+  institutionShape,
+  locationOf,
+  proposalTitle,
+  proposalSite,
+  type PlanProposal,
+  type CharterNode,
+} from './charters';
+import type { BuildingChoice } from './placement';
+import type { TownState } from './data';
+type PlanningTab = 'overview' | 'places' | 'upgrades' | 'land';
+type Draft = {
+  fromPlot?: string | null;
+  kind: 'branch' | 'relocate' | 'expand' | 'build';
+  institution?: string;
+  option: string;
+};
+type Props = {
+  initialDraft?: BuildingChoice | null;
+  data: TownState;
+  busy: boolean;
+  onAction: (action: string, args: Record<string, unknown>) => void;
+  onLook: (x: number, z: number) => void;
+  onTravel: () => void;
+  onPreview: (choice: BuildingChoice, plan?: PlanProposal) => void;
+};
+export default function PlanningPanel({
+  data,
+  busy,
+  onAction,
+  onLook,
+  onTravel,
+  onPreview,
+  initialDraft,
+}: Props) {
+  const s = data.planning,
+    isMayor = data.election.mayor?.id === data.resident.id,
+    active = s.proposals.find((p) =>
+      ['voting', 'approved', 'ready'].includes(p.status),
+    ),
+    [draft, setDraft] = useState<Draft | null>(
+      initialDraft && initialDraft.option !== 'browse'
+        ? {
+            ...initialDraft,
+            institution: initialDraft.institution ?? undefined,
+          }
+        : null,
+    ),
+    review = useRef<HTMLElement>(null);
+  const [section, setSection] = useState<PlanningTab>(
+      initialDraft?.option === 'browse' ? 'places' : 'overview',
+    ),
+    [institution, setInstitution] = useState(
+      initialDraft?.institution ?? 'library',
+    ),
+    previousProject = useRef(active?.id),
+    tabsTop = useRef<HTMLDivElement>(null);
+  const openLots = hasCommunitySquare(s)
+    ? SQUARE_LOTS.filter((l) => !plotOccupied(l.id, s)).length
+    : null;
+  const history = s.proposals.filter(
+    (p) => p.status === 'completed' || p.status === 'rejected',
+  );
+  const goTo = (tab: PlanningTab) => {
+    setSection(tab);
+    tabsTop.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+  };
+  const chooseDraft = (value: Draft) => {
+    setDraft(value);
+    goTo('overview');
+  };
+  useEffect(() => {
+    if (draft && section === 'overview') {
+      review.current?.focus({ preventScroll: true });
+      review.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    }
+  }, [draft, section]);
+  useEffect(() => {
+    if (active) {
+      setDraft(null);
+      if (previousProject.current !== active.id) setSection('overview');
+    }
+    previousProject.current = active?.id;
+  }, [active?.id]);
+  const inst = draft?.institution
+      ? s.institutions.find((i) => i.id === draft.institution)
+      : undefined,
+    node = draft?.kind === 'branch' ? nodeById(draft.option) : undefined;
+  const cost =
+    draft?.kind === 'expand'
+      ? TERRITORIES.find((t) => t.id === draft.option)!.cost
+      : draft?.kind === 'branch'
+        ? node!.cost
+        : draft?.kind === 'build'
+          ? REDEVELOPMENTS.find((r) => r.id === draft.option)!.cost
+          : draft?.kind === 'relocate'
+            ? 800 + (inst?.node === 'root' ? 0 : 600)
+            : 0;
+  const preview = (d: Draft) =>
+    onPreview({ ...d, institution: d.institution ?? null });
+  return (
+    <div className="planning-panel">
+      <div className="planning-summary">
+        <span>
+          Town fund <strong>{data.town.treasury.toLocaleString()} coins</strong>
+        </span>
+        <span>{isMayor ? 'You are the mayor' : 'You are a resident'}</span>
+      </div>
+      <Tabs
+        value={section}
+        onValueChange={(value) => goTo(value as PlanningTab)}
+        className="planning-tabs"
+      >
+        <div ref={tabsTop} className="planning-tab-navigation">
+          <TabsList
+            className="planning-tab-list"
+            aria-label="Town planning areas"
+          >
+            <TabsTrigger value="overview">
+              Overview
+              {active && (
+                <span
+                  className="planning-tab-dot"
+                  aria-label="Active project"
+                />
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="places">New places</TabsTrigger>
+            <TabsTrigger value="upgrades">Upgrades</TabsTrigger>
+            <TabsTrigger value="land">More land</TabsTrigger>
+          </TabsList>
+        </div>
+        {section !== 'overview' && (active || draft) && (
+          <button
+            className="planning-current-link"
+            onClick={() => goTo('overview')}
+          >
+            {active
+              ? `${active.status === 'voting' ? 'Vote open' : active.status === 'approved' ? 'Needs funding' : 'Ready to build'} · ${proposalTitle(active)}`
+              : 'Your proposal draft is ready'}
+            <span>View in Overview →</span>
+          </button>
+        )}
+        <TabsContent value="overview" className="planning-tab-content">
+          <div>
+            <h3>
+              {active
+                ? 'Your town’s current project'
+                : draft
+                  ? 'Review your proposal'
+                  : 'What shall we build together?'}
+            </h3>
+            <p>
+              {active
+                ? 'See the next step, cast your vote, or help fund the town’s decision.'
+                : draft
+                  ? 'Check the choice, cost and site before opening a resident vote.'
+                  : 'There is no active planning project. Explore a new place, develop a public building, or open more land.'}
+            </p>
+          </div>
+          <div className="planning-flow">
+            <span>1 · Residents vote</span>
+            <ArrowDown size={16} />
+            <span>2 · Town funds it</span>
+            <ArrowDown size={16} />
+            <strong>3 · Mayor places it</strong>
+          </div>
+
+          {draft && !active && (
+            <section
+              className="planning-review"
+              ref={review}
+              tabIndex={-1}
+              aria-label="Review town proposal"
+            >
+              <span className="eyebrow">
+                Review before opening a seven-day vote
+              </span>
+              <h3>
+                {proposalTitle({
+                  ...draft,
+                  institution: draft.institution ?? null,
+                })}
+              </h3>
+              <p>{cost.toLocaleString()} town coins</p>
+              <p>
+                {draft.kind === 'branch'
+                  ? `Choose ${node?.name} as this institution’s ${node?.parent === 'root' ? 'only path. The other two paths will close' : 'final outcome. The other outcome will close'}.`
+                  : draft.kind === 'relocate'
+                    ? `Move ${institutionShape(inst!).name}. Its chosen branch stays the same and its previous site becomes free.`
+                    : draft.kind === 'expand'
+                      ? 'Acquire this territory for your town. It becomes available when fully funded.'
+                      : 'Add this community building on suitable owned land.'}
+              </p>
+              {draft.kind !== 'expand' && (
+                <button
+                  className="secondary-button full"
+                  onClick={() => preview(draft)}
+                >
+                  <Grid2X2 size={17} />
+                  Compare size and try locations
+                </button>
+              )}
+              <p className="note">
+                {draft.fromPlot && squareLot(draft.fromPlot)
+                  ? `The vote reserves ${squareLot(draft.fromPlot)!.name}, its inward-facing entrance, and this budget. No coins are spent yet. After approval and full funding, the mayor confirms construction on that lot.`
+                  : 'The vote locks the building and budget. No coins are spent yet. After approval and full funding, the mayor chooses its final location and facing.'}
+              </p>
+              <div className="button-row">
+                <button
+                  className="primary-button"
+                  disabled={!isMayor || busy}
+                  onClick={() => onAction('plan-propose', draft)}
+                >
+                  Open resident vote
+                </button>
+                <button
+                  className="secondary-button"
+                  onClick={() => setDraft(null)}
+                >
+                  Cancel draft
+                </button>
+              </div>
+            </section>
+          )}
+          {active && (
+            <section className="featured-project">
+              <span className="eyebrow">
+                {active.status === 'voting'
+                  ? 'Resident planning vote'
+                  : active.status === 'ready'
+                    ? 'Paid for · ready to place'
+                    : 'Approved · funding construction'}
+              </span>
+              <h3>{proposalTitle(active)}</h3>
+              <p>
+                Proposed by {active.name} · {active.cost.toLocaleString()} town
+                coins
+              </p>
+              {active.kind === 'build' && communityBuilding(active.option) && (
+                <BuildingPossibilities
+                  building={communityBuilding(active.option)!}
+                />
+              )}
+              {active.kind !== 'expand' ? (
+                <>
+                  <p>
+                    {active.fromPlot && squareLot(active.fromPlot)
+                      ? `Reserved site: ${squareLot(active.fromPlot)!.name}. The approved site and inward-facing entrance cannot change.`
+                      : 'The existing facility stays open until placement. The mayor chooses a suitable site and facing on owned land.'}
+                  </p>
+                  <button
+                    className="primary-button full"
+                    onClick={() => onPreview(active, active)}
+                  >
+                    <Grid2X2 size={18} />
+                    {active.status === 'ready' && isMayor
+                      ? 'Place building on the grid'
+                      : 'Preview full-size building on the grid'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="secondary-button full"
+                  onClick={() => {
+                    const p = proposalSite(active);
+                    if (p) onLook(p.x, p.z);
+                  }}
+                >
+                  View expansion area
+                  <MapPin size={16} />
+                </button>
+              )}
+              {active.status === 'voting' ? (
+                <>
+                  <strong>
+                    {active.yes} support · {active.no} oppose
+                  </strong>
+                  <p>
+                    Closes{' '}
+                    {new Date(active.closes).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      timeZone: 'UTC',
+                    })}
+                  </p>
+                  <p className="note">
+                    Needs 60% support and at least {active.quorum} of{' '}
+                    {active.electorate} eligible residents voting. The proposal
+                    is locked; your vote can change until polls close.
+                  </p>
+                  {active.eligible ? (
+                    <div className="button-row">
+                      <button
+                        className="primary-button"
+                        disabled={busy || active.myVote === 1}
+                        onClick={() =>
+                          onAction('plan-vote', { plan: active.id, vote: true })
+                        }
+                      >
+                        {active.myVote === 1 ? 'Your vote: support' : 'Support'}
+                      </button>
+                      <button
+                        className="secondary-button"
+                        disabled={busy || active.myVote === 0}
+                        onClick={() =>
+                          onAction('plan-vote', {
+                            plan: active.id,
+                            vote: false,
+                          })
+                        }
+                      >
+                        {active.myVote === 0 ? 'Your vote: oppose' : 'Oppose'}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="note">
+                      The voter roll was fixed when this proposal opened, using
+                      settled residents active in the preceding 14 days.
+                    </p>
+                  )}
+                </>
+              ) : active.status === 'approved' ? (
+                <>
+                  <div className="progress-label">
+                    <span>
+                      {active.funded.toLocaleString()} /{' '}
+                      {active.cost.toLocaleString()} coins funded
+                    </span>
+                    <strong>
+                      {Math.floor((active.funded / active.cost) * 100)}%
+                    </strong>
+                  </div>
+                  <Progress
+                    className="progress"
+                    value={(active.funded / active.cost) * 100}
+                    aria-label="Development funding"
+                  />
+                  {isMayor && (
+                    <div className="button-row">
+                      <button
+                        className="primary-button"
+                        disabled={
+                          busy ||
+                          data.town.treasury <
+                            Math.min(100, active.cost - active.funded)
+                        }
+                        onClick={() =>
+                          onAction('plan-fund', {
+                            plan: active.id,
+                            funded: active.funded,
+                            amount: Math.min(100, active.cost - active.funded),
+                          })
+                        }
+                      >
+                        Allocate {Math.min(100, active.cost - active.funded)}
+                      </button>
+                      <button
+                        className="secondary-button"
+                        disabled={
+                          busy ||
+                          data.town.treasury < active.cost - active.funded
+                        }
+                        onClick={() =>
+                          onAction('plan-fund', {
+                            plan: active.id,
+                            funded: active.funded,
+                            amount: active.cost - active.funded,
+                          })
+                        }
+                      >
+                        Fund remaining{' '}
+                        {(active.cost - active.funded).toLocaleString()}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="note">
+                  {active.fromPlot && squareLot(active.fromPlot)
+                    ? 'No more coins are needed. Open the grid to confirm construction on the reserved lot.'
+                    : 'No more coins are needed. Open the grid to choose a location.'}{' '}
+                  Only the elected mayor can confirm placement.
+                </p>
+              )}
+              {active.status !== 'ready' && (
+                <button
+                  className="secondary-button full"
+                  disabled={busy || data.resident.coins < 25}
+                  onClick={() => onAction('support-project', {})}
+                >
+                  Add 25 coins to the town fund
+                </button>
+              )}
+            </section>
+          )}
+
+          <div className="planning-destinations">
+            <button onClick={() => goTo('places')}>
+              <strong>Choose a new place</strong>
+              <span>
+                {openLots === null
+                  ? 'Find a suitable site'
+                  : `${openLots} open ${openLots === 1 ? 'lot' : 'lots'}`}{' '}
+                · {REDEVELOPMENTS.length} building choices
+              </span>
+              <small>Compare potential jobs and community activities.</small>
+            </button>
+            <button onClick={() => goTo('upgrades')}>
+              <strong>Develop a public building</strong>
+              <span>Library · Town center · Harbor</span>
+              <small>Choose an upgrade path or propose relocation.</small>
+            </button>
+            <button onClick={() => goTo('land')}>
+              <strong>Make room to grow</strong>
+              <span>
+                {
+                  TERRITORIES.filter((t) => !s.territories.includes(t.id))
+                    .length
+                }{' '}
+                territories to explore
+              </span>
+              <small>Vote for more land and new places to build.</small>
+            </button>
+          </div>
+          <details className="civic-section">
+            <summary>Previous planning decisions</summary>
+            {history.map((p) => (
+              <div className="civic-record" key={p.id}>
+                <strong>{proposalTitle(p)}</strong>
+                <p>
+                  {p.status === 'completed' ? 'Completed' : 'Did not pass'} ·{' '}
+                  {p.yes} support / {p.no} oppose
+                </p>
+              </div>
+            ))}
+            {history.length === 0 && (
+              <p className="note">
+                No planning decisions yet. Completed projects and vote results
+                will appear here.
+              </p>
+            )}
+          </details>
+        </TabsContent>
+        <TabsContent
+          value="places"
+          keepMounted
+          className="planning-tab-content"
+        >
+          {' '}
+          <CommunitySquarePanel
+            state={s}
+            initialLot={initialDraft?.fromPlot}
+            canPropose={isMayor}
+            busy={busy}
+            onChoose={(c) =>
+              chooseDraft({ ...c, institution: c.institution ?? undefined })
+            }
+            onPreview={onPreview}
+            onLook={onLook}
+          />
+        </TabsContent>
+        <TabsContent
+          value="upgrades"
+          keepMounted
+          className="planning-tab-content"
+        >
+          <div>
+            <h3>Public buildings</h3>
+            <p>
+              Choose a building below to see its current form, future paths and
+              relocation options.
+            </p>
+          </div>{' '}
+          <div className="tree-rule">
+            <strong>One path per institution. One final outcome.</strong>
+            <p>
+              First choose <b>one of three paths</b>. Later, choose{' '}
+              <b>one of the two outcomes beneath that path</b>. The other paths
+              close permanently. The library, town center, and harbor each
+              choose independently.
+            </p>
+          </div>
+          <Tabs
+            value={institution}
+            onValueChange={(value) => setInstitution(String(value))}
+            className="planning-institution-tabs"
+          >
+            <TabsList
+              className="planning-institution-list"
+              aria-label="Choose a public building"
+            >
+              {INSTITUTIONS.map((i) => (
+                <TabsTrigger key={i.id} value={i.id}>
+                  {i.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {s.institutions.map((i) => {
+              const current = institutionShape(i),
+                site = locationOf(i),
+                chosenRoot =
+                  i.node === 'root'
+                    ? null
+                    : nodeById(i.node)?.parent === 'root'
+                      ? i.node
+                      : nodeById(i.node)?.parent;
+              const card = (n: CharterNode) => {
+                const chosen = n.id === i.node,
+                  ancestor = n.id === chosenRoot && i.node !== n.id,
+                  available = n.parent === i.node,
+                  closed =
+                    chosenRoot &&
+                    (n.parent === 'root'
+                      ? n.id !== chosenRoot
+                      : n.parent !== chosenRoot ||
+                        (i.node !== chosenRoot && n.id !== i.node));
+                return (
+                  <div
+                    className={`branch-card ${chosen ? 'is-current' : ''} ${closed ? 'is-closed' : ''}`}
+                    key={n.id}
+                  >
+                    <div className="branch-status">
+                      {chosen ? (
+                        <>
+                          <Check size={14} />
+                          Current building
+                        </>
+                      ) : ancestor ? (
+                        <>
+                          <Check size={14} />
+                          Your chosen path
+                        </>
+                      ) : closed ? (
+                        <>
+                          <LockKeyhole size={14} />
+                          Permanently excluded
+                        </>
+                      ) : available ? (
+                        'Available next'
+                      ) : (
+                        'Future choice'
+                      )}
+                    </div>
+                    <strong>{n.name}</strong>
+                    <p>{n.description}</p>
+                    <span>
+                      {n.width} × {n.depth} squares · {n.cost.toLocaleString()}{' '}
+                      coins
+                    </span>
+                    <button
+                      className="branch-preview"
+                      onClick={() =>
+                        preview({
+                          kind: 'branch',
+                          institution: i.id,
+                          option: n.id,
+                        })
+                      }
+                    >
+                      <Grid2X2 size={15} />
+                      Compare on grid
+                    </button>
+                    {available && (
+                      <button
+                        className="primary-button full"
+                        disabled={!isMayor || !!active || busy}
+                        onClick={() =>
+                          chooseDraft({
+                            kind: 'branch',
+                            institution: i.id,
+                            option: n.id,
+                          })
+                        }
+                      >
+                        Choose{' '}
+                        {n.parent === 'root' ? 'this path' : 'this outcome'}
+                      </button>
+                    )}
+                  </div>
+                );
+              };
+              return (
+                <TabsContent
+                  className="institution-card"
+                  key={i.id}
+                  value={i.id}
+                >
+                  <div className="planning-institution-heading">
+                    <span>
+                      {INSTITUTIONS.find((x) => x.id === i.id)!.name}
+                      <small>
+                        {current.name} · {current.width} × {current.depth}{' '}
+                        squares
+                      </small>
+                    </span>
+                  </div>
+                  <div className="tree-origin">
+                    <strong>
+                      {INSTITUTIONS.find((x) => x.id === i.id)!.name}
+                    </strong>
+                    <span>
+                      {i.node === 'root'
+                        ? 'Your starting building'
+                        : `Chosen path: ${nodeById(chosenRoot!)?.name}`}
+                    </span>
+                  </div>
+                  <div className="tree-step">
+                    First fork · choose ONE of these three paths
+                  </div>
+                  <div className="branch-tree">
+                    {CHARTER_NODES.filter(
+                      (n) => n.institution === i.id && n.parent === 'root',
+                    ).map((first, index) => (
+                      <div
+                        className={`tree-lane ${chosenRoot === first.id ? 'is-chosen' : ''}`}
+                        key={first.id}
+                      >
+                        <span className="path-number">Path {index + 1}</span>
+                        {card(first)}
+                        <div className="tree-fork">
+                          <ArrowDown size={17} />
+                          <span>Then choose ONE</span>
+                        </div>
+                        <div className="outcome-pair">
+                          {CHARTER_NODES.filter(
+                            (n) => n.parent === first.id,
+                          ).map((n, index) => (
+                            <div key={n.id}>
+                              {index === 1 && (
+                                <span className="tree-or">OR</span>
+                              )}
+                              {card(n)}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="institution-actions">
+                    <button
+                      className="secondary-button"
+                      onClick={() => onLook(site.x, site.z)}
+                    >
+                      <MapPin size={16} />
+                      Find current building
+                    </button>
+                    <button
+                      className="secondary-button"
+                      disabled={!isMayor || !!active || busy}
+                      onClick={() =>
+                        chooseDraft({
+                          kind: 'relocate',
+                          institution: i.id,
+                          option: 'free',
+                        })
+                      }
+                    >
+                      Propose relocation
+                    </button>
+                  </div>
+                  <p className="note">
+                    Relocation keeps the chosen path. Upgrades can also be
+                    placed at a larger site after approval and funding.
+                  </p>
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        </TabsContent>
+        <TabsContent value="land" className="planning-tab-content">
+          <p>
+            Expand the town through a resident vote. Approved land opens once
+            its full cost has been funded.
+          </p>{' '}
+          <h3>Room to grow</h3>
+          <div className="territory-options">
+            {TERRITORIES.map((t) => (
+              <button
+                key={t.id}
+                className="territory-choice"
+                disabled={
+                  !isMayor || !!active || busy || s.territories.includes(t.id)
+                }
+                onClick={() => chooseDraft({ kind: 'expand', option: t.id })}
+              >
+                <strong>
+                  {s.territories.includes(t.id) ? '✓ ' : ''}
+                  {t.name}
+                </strong>
+                <p>{t.description}</p>
+                <small>
+                  {s.territories.includes(t.id)
+                    ? 'Owned by your town'
+                    : `${t.cost.toLocaleString()} coins · resident vote required`}
+                </small>
+              </button>
+            ))}
+          </div>
+          {s.territories.includes('island') && (
+            <button className="secondary-button full" onClick={onTravel}>
+              <Ship size={17} />
+              Walk to the ferry landing
+            </button>
+          )}
+        </TabsContent>
+      </Tabs>
+      <p className="note">
+        {isMayor
+          ? 'You can open proposals and place approved, funded buildings.'
+          : 'Everyone can explore and preview. Eligible residents vote; the mayor proposes, funds and places projects.'}{' '}
+        {active
+          ? 'Finish the current project before opening another proposal.'
+          : 'One planning project runs at a time.'}
+      </p>
+    </div>
+  );
 }

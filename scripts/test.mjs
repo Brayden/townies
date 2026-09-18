@@ -5,6 +5,8 @@ const browser = [
   'camera-browser.mjs',
   'graphics-browser.mjs',
   'hud-layout-browser.mjs',
+  'planning-panel-browser.mjs',
+  'town-panel-browser.mjs',
   'chat-read-sync.mjs',
 ];
 const integration = [

@@ -1,0 +1,1 @@
+ALTER TABLE `towns` ADD `square_version` integer DEFAULT 0 NOT NULL;

@@ -11,7 +11,7 @@ await build({
   stdin: {
     contents: `
 import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';
-import TownScene from './app/game/TownScene';import {EMPTY_PLANNING} from './app/game/charters';import {HOUSES} from './app/game/lifestyle';
+import TownScene from './app/game/TownScene';import {EMPTY_PLANNING} from './app/game/charters';import {SQUARE_FRONTAGES} from './app/game/communitySquare';window.squarePlanning={...structuredClone(EMPTY_PLANNING),squareVersion:1,institutions:EMPTY_PLANNING.institutions.map(i=>({...i,...(i.id==='library'?SQUARE_FRONTAGES.library:i.id==='towncenter'?{x:0,z:7,rotation:0}:{})}))};import {HOUSES} from './app/game/lifestyle';
 const root=createRoot(document.getElementById('root'));window.readyCount=0;window.houses=HOUSES;
 window.props={enabled:true,player:{id:'local-camera-test',name:'Local player',color:'#688aa1',x:0,z:6},planning:structuredClone(EMPTY_PLANNING),properties:[{home:0,house:HOUSES[0].id,name:'A',items:[]},{home:1,house:HOUSES[0].id,name:'B',items:[]}]};
 window.update=(patch={})=>{Object.assign(window.props,patch);flushSync(()=>root.render(<main className="game"><TownScene {...window.props} onReady={api=>{window.scene=api;window.readyCount++}}/></main>))};window.update();`,
@@ -32,7 +32,7 @@ window.update=(patch={})=>{Object.assign(window.props,patch);flushSync(()=>root.
             loader: 'tsx',
             contents: source.replace(
               'frame=requestAnimationFrame(animate);\nreturn()=>',
-              `window.inspectPeers=()=>Array.from(people.values());window.inspectCamera=()=>({viewHeight,yaw,pitch,target:target.toArray(),cameraTarget:cameraTarget.toArray(),follow,inspecting,currentFocus,position:you.position.toArray(),keys:[...keys]});\nframe=requestAnimationFrame(animate);\nreturn()=>`,
+              `window.squareScreenPoint=(x,z)=>{const v=new THREE.Vector3(x,0,z).project(camera);return{x:(v.x+1)*el.clientWidth/2,y:(1-v.y)*el.clientHeight/2}};window.inspectPeers=()=>Array.from(people.values());window.inspectCamera=()=>({viewHeight,yaw,pitch,target:target.toArray(),cameraTarget:cameraTarget.toArray(),follow,inspecting,currentFocus,position:you.position.toArray(),keys:[...keys]});\nframe=requestAnimationFrame(animate);\nreturn()=>`,
             ),
           };
         });
@@ -330,6 +330,52 @@ try {
   assert.deepEqual(errors, []);
   console.log(
     'PASS: departing neighbors release all character, vehicle, and job-equipment geometry across repeated joins/leaves.',
+  );
+  await page.evaluate(() => {
+    window.update({
+      planning: window.squarePlanning,
+      enabled: true,
+      onSelectTask: (id) => {
+        window.selectedSquareTask = id;
+      },
+    });
+    window.scene.resetCamera();
+    window.scene.lookAt(-5, 15);
+  });
+  await page.waitForFunction(
+    () => Math.abs(window.inspectCamera().target[2] - 15) < 0.02,
+  );
+  const lotLabels = page
+    .locator('.world-label')
+    .filter({ hasText: 'Choose our next place' });
+  assert.equal(await lotLabels.count(), 0, 'Vacant lot prompts start hidden');
+  // Test near the edge, away from the small sign: the whole dirt lot is interactive.
+  const point = await page.evaluate(() => window.squareScreenPoint(-2.2, 15));
+  await page.mouse.move(point.x, point.y);
+  await lotLabels.first().waitFor({ state: 'visible' });
+  assert.equal(await lotLabels.count(), 1);
+  assert.match(await lotLabels.first().textContent(), /Southwest Square Lot/);
+  await page.mouse.click(point.x, point.y);
+  await page.waitForFunction(
+    () => window.selectedSquareTask === 'square-southwest',
+  );
+  await page.mouse.move(5, 5);
+  await lotLabels.first().waitFor({ state: 'detached' });
+  await page.mouse.move(point.x, point.y);
+  await lotLabels.first().waitFor({ state: 'visible' });
+  await page.evaluate(() => window.scene.lookAt(0, -5));
+  await lotLabels.first().waitFor({ state: 'detached' });
+  await page.evaluate(() =>
+    document
+      .querySelector('canvas')
+      .dispatchEvent(
+        new PointerEvent('pointerleave', { pointerType: 'mouse' }),
+      ),
+  );
+  assert.equal(await lotLabels.count(), 0);
+  assert.deepEqual(errors, []);
+  console.log(
+    'PASS: vacant-lot prompts are hover-only, the full lot opens planning, and moving the camera clears stale hover.',
   );
 } finally {
   await browser?.close();

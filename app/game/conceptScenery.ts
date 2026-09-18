@@ -2,12 +2,13 @@ import * as THREE from 'three';
 import {HOME_LOTS,ROADS,COMMUNITY_PARK} from './townLayout';
 type Parent=THREE.Object3D;
 type Kit={box:(w:number,h:number,d:number,c:string,x:number,y:number,z:number,parent?:Parent)=>THREE.Mesh;ball:(r:number,c:string,x:number,y:number,z:number,parent?:Parent)=>THREE.Mesh;cylinder:(r:number,h:number,c:string,x:number,y:number,z:number,parent?:Parent,rt?:number)=>THREE.Mesh;roof:(w:number,d:number,h:number,c:string,x:number,y:number,z:number,parent?:Parent)=>THREE.Mesh;tree:(x:number,z:number,s?:number)=>void;bench:(x:number,z:number,parent?:Parent)=>void;flower:(x:number,z:number,c:string,parent?:Parent)=>void};
-export function conceptScenery(k:Kit,expanded:{north:boolean;east:boolean}={north:false,east:false}){const {box,ball,cylinder,roof,tree,bench,flower}=k;
+export function conceptScenery(k:Kit,expanded:{north:boolean;east:boolean;square?:boolean}={north:false,east:false}){const {box,ball,cylinder,roof,tree,bench,flower}=k;
  // Raised curb lines and repeated paving give the grid a consistent visual scale.
  const paved=ROADS.flatMap(r=>{const left=r.x-r.width/2,right=r.x+r.width/2;if(right<=23.2||left>=32.8)return[r];return[{...r,x:(left+23.2)/2,width:23.2-left},{...r,x:(32.8+right)/2,width:right-32.8}].filter(p=>p.width>0)});
  for(const r of paved){box(r.width+.45,.045,r.depth+.45,'#e8ddbf',r.x,.155,r.z);box(r.width,.045,r.depth,'#c8c4af',r.x,.18,r.z);const along=r.width>r.depth,length=along?r.width:r.depth;for(let n=-length/2+2;n<length/2;n+=2)box(along?.025:r.width,.012,along?r.depth:.025,'#b7b6a5',r.x+(along?n:0),.21,r.z+(along?0:n));}
  box(41,.08,36,'#c4c1a8',0,.15,0);box(40,.045,35,'#e1d3b1',0,.205,0);
  for(let x=-19;x<20;x+=2)for(let z=-16;z<18;z+=2){box(1.95,.012,.025,'#cdbf9f',x,.236,z);box(.025,.012,1.95,'#cdbf9f',x-1,.236,z+1)}
+ if(expanded.square){box(24,.045,11,'#99b97b',0,.245,-1.5);box(1.5,.025,11,'#dfd1ae',0,.28,-1.5);box(24,.025,1.5,'#dfd1ae',0,.28,0);for(const [x,z]of [[-9,-5],[9,-5],[-9,2],[9,2]])bench(x,z);}
  function shrub(x:number,z:number,s=1){const b=ball(.45*s,'#62864c',x,.45*s,z);b.scale.set(1.25,.9,1);ball(.3*s,'#8aaa59',x+.18*s,.68*s,z);}
  function flowerBorder(x:number,z:number,length:number,vertical=false){for(let i=0;i<length;i+=.65){const xx=x+(vertical?0:i),zz=z+(vertical?i:0);shrub(xx,zz,.8);for(let j=0;j<3;j++)flower(xx+(j-1)*.18,zz+.23,j%2?'#e89aae':'#efd474');}}
  // Every cottage gets an aligned, readable plot and front path.
@@ -38,10 +39,12 @@ export function conceptScenery(k:Kit,expanded:{north:boolean;east:boolean}={nort
  for(const z of [-17,17])for(const [x,len]of [[-52,8],[-40,9]])flowerBorder(x,z,len);
  for(const x of [-56,-26])for(const [z,len]of [[-13,11],[2,11]])flowerBorder(x,z,len,true);
  for(const [x,z]of [[-50,-5],[-45,-12],[-37,-11],[-32,-3],[-40,8],[-54,5]])tree(x,z,.85);
+ if(!expanded.square){
  // Floral courtyards, planters and a café terrace add activity around the square.
  for(const [x,z,len]of [[-18,-16,14],[5,-16,13],[-18,15,5],[12,15,6],[-11,8,5],[6,8,5]])flowerBorder(x,z,len);
  for(const x of [-9,-3,3,9]){box(1,.45,1,'#c2ad84',x,.44,19);flowerBorder(x-.25,19,.6)}
  for(const [x,z]of [[-18,-1],[-15,-1],[-18,2]]){cylinder(.75,.12,'#dfc89c',x,.82,z);cylinder(.08,.7,'#837351',x,.43,z);cylinder(1.05,.45,'#f1e6c7',x,2.3,z,undefined,0);box(.06,1.7,.06,'#8d7651',x,1.35,z);}
+ }
  // Greenhouses and rectangular teaching / neighborhood garden plots.
  function greenhouse(x:number,z:number,depth=3){box(3,1.65,depth,'#bdd6c6',x,1.05,z);roof(3.1,depth+.1,1,'#b8d0bd',x,1.89,z);for(const dx of [-1.5,-.5,.5,1.5]){box(.055,1.7,.055,'#f2ead3',x+dx,1.07,z+depth/2+.03);box(.055,1.7,.055,'#f2ead3',x+dx,1.07,z-depth/2-.03)}for(const y of [.28,1.1,1.85])box(3.1,.065,depth+.1,'#e6e2c8',x,y,z);}
  greenhouse(17,-28);greenhouse(53,-16);greenhouse(53,17.7,2.4);

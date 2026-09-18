@@ -6,6 +6,7 @@ import {farmIsOpen} from './townFarm';
 export function townSceneLayoutKey(planning:PlanningState=EMPTY_PLANNING,properties:{home:number;house?:string}[]=[]){
  const sorted=(rows:unknown[][])=>rows.map(row=>JSON.stringify(row)).sort();
  return JSON.stringify([
+  planning.squareVersion??0,
   [...planning.territories].sort(),
   sorted(planning.institutions.map(i=>{const p=locationOf(i);return[i.id,i.node,i.plot,p.x,p.z,p.rotation]})),
   sorted(planning.buildings.map(b=>{const p=locationOf(b);return[b.plot,b.kind,p.x,p.z,p.rotation]})),

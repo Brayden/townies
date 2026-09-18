@@ -93,6 +93,28 @@ const old = first.town.id,
   nextDb = townDB(next),
   rid = first.resident.id;
 assert.notEqual(old, next);
+assert.equal(first.planning.squareVersion, 1);
+// Supplies follow the new Post Office; the former stand cannot refill remotely.
+for (const [job, column, capacity] of [
+  ['paper', 'papers', 12],
+  ['deliver', 'parcels', 6],
+]) {
+  await a.ok({ action: 'shift', job });
+  oldDb
+    .prepare(`UPDATE residents SET x=17.5,z=-3.55,${column}=0 WHERE id=?`)
+    .run(rid);
+  assert.equal(
+    (await a.api('/api/game', { action: 'refill', station: 'supplies' }))
+      .status,
+    400,
+  );
+  oldDb.prepare('UPDATE residents SET x=-13,z=11.55 WHERE id=?').run(rid);
+  const refilled = await a.ok({ action: 'refill', station: 'supplies' });
+  assert.equal(refilled.resident[column], capacity);
+}
+console.log(
+  'PASS: paper and parcel refills use the new Post Office supply stand and reject the former location.',
+);
 // Simultaneous mowers still award each shared patch exactly once.
 for (const player of [a, b]) {
   const state = await player.ok({ action: 'job', job: 'mow' });
