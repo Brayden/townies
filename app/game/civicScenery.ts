@@ -28,7 +28,7 @@ export function civicScenery(k:Kit,buildings:WorldBuilding[]=BUILDINGS,square=fa
    case 'harbor-terrace':box(7,.06,2.6,'#c4a173',-39,.28,54,g);pergola(-39,54,6.5,2.2,g);for(const x of [-41,-37])bench(x,54,g);for(const x of [-43,-35])lantern(x,54,g);break;
   }
  }
- for(const [id,buildingId] of [['hall-restoration','townhall'],['school-court','school']]){const original=BUILDINGS.find(b=>b.id===buildingId)!,current=buildings.find(b=>b.id===buildingId);if(current)groups.get(id)!.position.set(current.x-original.x,0,current.z-original.z);}
+ for(const [id,buildingId] of [['hall-restoration','townhall'],['school-court','school'],['garden-terrace','gardenclub']]){const original=BUILDINGS.find(b=>b.id===buildingId)!,current=buildings.find(b=>b.id===buildingId);if(current)groups.get(id)!.position.set(current.x-original.x,0,current.z-original.z);}
  const construction=new THREE.Group();construction.name='Featured project site';for(const x of [-.65,.65])box(.1,1.25,.1,'#8d7958',x,.8,0,construction);box(1.8,.65,.15,'#e2c076',0,1.18,0,construction);for(const x of [-.6,-.2,.2,.6]){const stripe=box(.15,.65,.17,'#788568',x,1.18,0,construction);stripe.rotation.z=-.3}construction.visible=false;
  return {groups,construction};
 }

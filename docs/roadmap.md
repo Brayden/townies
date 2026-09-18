@@ -10,7 +10,7 @@ The original [gameplay design](gameplay-design.md) describes aspirations as well
 
 ## Community square prototype
 
-New towns have an inward-facing square with three resident-selected building lots. The catalog connects twelve buildable venues to potential careers and activities; those new gameplay loops remain planned. See [the prototype and next playable slice](community-square.md) before extending it.
+New towns have an inward-facing square with four resident-selected building lots. The catalog connects twelve buildable venues to potential careers and activities; those new gameplay loops remain planned. See [the prototype and next playable slice](community-square.md) before extending it.
 
 ## Coordinated work
 

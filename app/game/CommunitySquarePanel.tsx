@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { Briefcase, Users } from 'lucide-react';
 import {
   COMMUNITY_BUILDINGS,
   communityBuilding,
@@ -74,8 +75,8 @@ export default function CommunitySquarePanel({
       <h3>A place for our next shared story</h3>
       <p>
         {square
-          ? 'Three lots, twelve possibilities. Choose a lot to explore what it could bring to your square.'
-          : 'Explore twelve community buildings for a clear site in your town. New towns also start with three reserved lots around an inward-facing square.'}
+          ? 'Four lots, twelve possibilities. Choose a lot to explore what it could bring to your square.'
+          : 'Explore twelve community buildings for a clear site in your town. New towns also start with four reserved lots around an inward-facing square.'}
       </p>
       {square && (
         <>
@@ -204,6 +205,28 @@ export default function CommunitySquarePanel({
                 <span className="eyebrow">{b.category}</span>
                 <strong>{b.name}</strong>
                 <small>{b.cost.toLocaleString()} town coins</small>
+                <span className="venue-choice-benefits">
+                  <span className="venue-choice-benefit">
+                    <Briefcase size={16} aria-hidden="true" />
+                    <span>
+                      <span className="venue-choice-benefit-label">
+                        Job · Planned
+                      </span>
+                      <span>{b.job}</span>
+                    </span>
+                  </span>
+                  <span className="venue-choice-benefit">
+                    <Users size={16} aria-hidden="true" />
+                    <span>
+                      <span className="venue-choice-benefit-label">
+                        {b.liveService
+                          ? 'Community · Available when built'
+                          : 'Community · Planned'}
+                      </span>
+                      <span>{b.activity}</span>
+                    </span>
+                  </span>
+                </span>
               </button>
             ))}
           </fieldset>

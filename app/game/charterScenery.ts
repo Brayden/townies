@@ -6,7 +6,13 @@ import type {Kit} from './civicScenery.ts';
 export function charterScenery(k:Kit,s:PlanningState){const {box,ball,cylinder,roof,bench,flower}=k,root=new THREE.Group();
  for(const t of TERRITORIES.filter(t=>s.territories.includes(t.id))){box(t.width,.65,t.depth,'#a7ab79',t.x,-.35,t.z,root);box(t.width,.08,t.depth,'#9abb72',t.x,.08,t.z,root);for(const dx of [-t.width/2+.7,t.width/2-.7])for(let z=t.z-t.depth/2+2;z<t.z+t.depth/2-1;z+=6){cylinder(.13,.8,'#9f8057',t.x+dx,.5,z,root);ball(.55,'#7d9d58',t.x+dx,1.2,z,root)}}
  for(const r of expansionRoads(s))box(r.width,.045,r.depth,'#ddcca7',r.x,.17,r.z,root);
- for(const p of PLOTS.filter(p=>plotOwned(p,s)&&!(hasCommunitySquare(s)&&['library-site','market-site'].includes(p.id))&&!plotOccupied(p.id,s))){box(p.width-.3,.035,p.depth-.3,'#b1c984',p.x,.15,p.z,root);for(const dx of [-p.width/2+.4,p.width/2-.4])for(const dz of [-p.depth/2+.4,p.depth/2-.4]){box(.13,.65,.13,'#b39261',p.x+dx,.46,p.z+dz,root);box(.35,.14,.35,'#ece0ac',p.x+dx,.77,p.z+dz,root)}}
+ for(const p of PLOTS.filter(p=>plotOwned(p,s)&&!(hasCommunitySquare(s)&&['library-site','market-site'].includes(p.id))&&!plotOccupied(p.id,s))){if(p.territory==='square'){
+  // Raised just above the plaza paving: quiet, gridded soil and a few supplies.
+  box(p.width-.3,.035,p.depth-.3,'#c6b08d',p.x,.255,p.z,root);
+  for(let x=0;x<p.width-1;x++)for(let z=0;z<p.depth-1;z++)box(.97,.012,.97,['#cbb795','#c7b18f','#c3ac87'][(x*7+z*3+x*z)%3],p.x-p.width/2+1+x,.279,p.z-p.depth/2+1+z,root);
+  for(let n=0;n<3;n++)box(1.45,.10,.22,'#b29369',p.x-p.width/2+1.3,.34+n*.1,p.z-p.depth/2+.65,root);
+  for(let n=0;n<4;n++)box(.28,.16,.3,n%2?'#b9b7a4':'#c8c4b0',p.x+p.width/2-.8+(n%2)*.3,.35+Math.floor(n/2)*.12,p.z-p.depth/2+.8,root);
+ }else box(p.width-.3,.035,p.depth-.3,'#b1c984',p.x,.15,p.z,root);for(const dx of [-p.width/2+.4,p.width/2-.4])for(const dz of [-p.depth/2+.4,p.depth/2-.4]){box(.13,.65,.13,'#b39261',p.x+dx,.46,p.z+dz,root);box(.35,.14,.35,'#ece0ac',p.x+dx,.77,p.z+dz,root)}}
 
  const buildings=townBuildings(s);
  for(const i of s.institutions){if(i.node==='root'&&i.id!=='harbor')continue;const b=buildings.find(b=>b.id===i.id)!;root.add(buildingModel(k,b,nodeById(i.node)?.style??'harbor'));}

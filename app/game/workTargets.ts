@@ -1,3 +1,4 @@
+import {SQUARE_FRONTAGES} from './communitySquare.ts';
 import {MAINTENANCE_TARGETS,MAINTENANCE_PAY,type MaintenanceJob} from './maintenance.ts';
 import {HOMES} from './data.ts';
 import {isTownBlocked,BUILDINGS,entrance} from './townLayout.ts';
@@ -8,6 +9,10 @@ export const WORK_DAY_MS=24*60*60*1000;
 export const WORK_PAY:Record<FieldJob,number>={paper:4,clean:3,garden:6,deliver:8,...MAINTENANCE_PAY};
 export const CAPACITY={paper:12,clean:8,garden:8,deliver:6};
 export const STATIONS=[{id:'supplies',...entrance(BUILDINGS.find(b=>b.id==='post')!),title:'Town supply stand',jobs:['paper','deliver']},{id:'recycling',x:-6,z:0,title:'Recycling station',jobs:['clean']},{id:'water',x:0,z:3,title:'Fountain refill',jobs:['garden']}];
+// The supply stand follows the Post Office frontage in the new square.
+const squarePostDoor=entrance({...BUILDINGS.find(b=>b.id==='post')!,...SQUARE_FRONTAGES.post});
+const SQUARE_STATIONS=STATIONS.map(s=>s.id==='supplies'?{...s,x:squarePostDoor.x+2,z:squarePostDoor.z}:s);
+export const workStations=(s?:{squareVersion?:number})=>s?.squareVersion===1?SQUARE_STATIONS:STATIONS;
 export const JOB_HINTS:Record<FieldJob,string>={sweep:'Drive your street sweeper over road debris. Brushes collect it as you go; each cleared section earns coins.',wash:'Find dirty sidewalks on your map. Tap a section nearby or press Space to wash it in clean stripes.',trim:'Find overgrown hedges on your map. Tap nearby or press Space to shape them with your trimmer.',rake:'Find leaf piles in parks and yards. Tap nearby or press Space to rake and bag them.',paper:'Keep riding! Press Space in range or tap a mailbox or doorstep to throw a newspaper.',clean:'Walk up to litter and tap it to pick it up. Empty a full bag at recycling.',garden:'Follow gray flowers on your map to thirsty beds at homes and community gardens. Tap a bed to water it.',deliver:'Follow parcel pins to today’s 38 homes. Pull your handcart to a marked doorstep and leave its parcel. New route at midnight UTC.'};
 export function workPointOpen(x:number,z:number){return !isTownBlocked(x,z)}
 const targets:WorkTarget[]=[];

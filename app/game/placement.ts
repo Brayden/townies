@@ -3,7 +3,7 @@ import {SQUARE_LOTS,squareLot,hasCommunitySquare} from './communitySquare.ts';
 import {TOWN_FARM,farmIsOpen} from './townFarm.ts';
 import {HOME_LOTS,ROADS,COMMUNITY_PARK,WINDMILL,entrance,isTownBlocked} from './townLayout.ts';
 import {GARDEN_AREAS} from './gardenAreas.ts';
-import {WORK_TARGETS,STATIONS} from './workTargets.ts';
+import {WORK_TARGETS,workStations} from './workTargets.ts';
 import {nodeById,institutionShape,locationOf,townLayout,townBuildings,expansionRoads,FERRY_STOPS,oriented,type PlanningState,type PlanProposal,type Placement,type WorldBuilding} from './charters.ts';
 export type BuildingChoice=Pick<PlanProposal,'kind'|'institution'|'option'>&{fromPlot?:string|null};
 export function placementShape(s:PlanningState,p:BuildingChoice){
@@ -21,7 +21,7 @@ export function protectedLand(s:PlanningState){return [...(farmIsOpen(s)?[{...TO
  ...townLayout(s).solidProps.map(p=>({...p,name:'An existing town feature'})),
  {x:0,z:0,width:4.5,depth:4.5,name:'The town fountain'},{...WINDMILL,width:5,depth:5,name:'The windmill'},
  ...FERRY_STOPS.map(f=>({...f,width:4,depth:4,name:'A ferry landing'})),
- ...WORK_TARGETS.map(t=>({...t,width:1.4,depth:1.4,name:'A job activity'})),...STATIONS.map(t=>({...t,width:2,depth:2,name:'A work supply station'})),
+ ...WORK_TARGETS.map(t=>({...t,width:1.4,depth:1.4,name:'A job activity'})),...workStations(s).map(t=>({...t,width:2,depth:2,name:'A work supply station'})),
  ];}
 export function placementError(s:PlanningState,p:BuildingChoice,v:Placement,reserved=protectedLand(s)):string|null{
  if(!Number.isInteger(v.x)||!Number.isInteger(v.z)||![0,90,180,270].includes(v.rotation))return 'Choose a grid square and one of the four building facings.';

@@ -19,7 +19,7 @@ import {recordContribution} from '@/db/contributions';
 import {readElection,electionAction} from '@/db/elections';
 import {isTownBlocked,safeTownPosition,BUILDINGS,entrance} from '@/app/game/townLayout';
 import {OUTFITS} from '@/app/game/outfits';
-import {TARGET_BY_ID,WORK_DAY_MS,WORK_PAY,CAPACITY,STATIONS,type FieldJob} from '@/app/game/workTargets';
+import {TARGET_BY_ID,WORK_DAY_MS,WORK_PAY,CAPACITY,workStations,type FieldJob} from '@/app/game/workTargets';
 import {db} from '@/db/raw';
 import {HOMES,JOBS,TASKS,SHOP,PARK,COLORS,GRASS_REGROW_MS,sweptGrass} from '@/app/game/data';
 type Row={move_owner:string;move_epoch:number;move_updated:number;visit_host:string|null;home_access:string;indoor_x:number;indoor_z:number;indoor_level:number;inside:number;interior:string;interior_revision:number;emote:string|null;emote_until:number;cat_pet:string|null;dog_pet:string|null;town_joined_at:number;house:string;upkeep_due:number;upkeep_note:string;riding:number;outfit:string;hat:string;accessory:string;planning?:PlanningState;id:string;token_hash:string;town_id:string;name:string;color:string;home:number|null;job:string|null;coins:number;xp:number;education:number;last_study:string|null;x:number;z:number;items:string;shift:FieldJob|null;papers:number;parcels:number;water:number;bag:number;action_target:string|null;action_started:number;mowing:number;seen:number;created:number};
@@ -73,7 +73,7 @@ else if(b.action==='cancel-water'){
  await d.prepare('UPDATE residents SET action_target=NULL,action_started=0 WHERE id=?').bind(r.id).run();
 }
 else if(b.action==='refill'){
- const station=STATIONS.find(s=>s.id===b.station);if(!station||!r.shift||!station.jobs.includes(r.shift)||Math.hypot(r.x-station.x,r.z-station.z)>2)return json({error:'Visit the matching supply or recycling station to refill.'},400);
+ const townVersion=await d.prepare('SELECT square_version AS squareVersion FROM towns WHERE id=?').bind(r.town_id).first<{squareVersion:number}>();const station=workStations(townVersion??undefined).find(s=>s.id===b.station);if(!station||!r.shift||!station.jobs.includes(r.shift)||Math.hypot(r.x-station.x,r.z-station.z)>2)return json({error:'Visit the matching supply or recycling station to refill.'},400);
  const column=({paper:'papers',deliver:'parcels',garden:'water',clean:'bag'} as Record<string,string>)[r.shift],amount=r.shift==='clean'?0:capacity(r.shift,JSON.parse(r.items));
  await d.prepare(`UPDATE residents SET ${column}=? WHERE id=? AND shift=?`).bind(amount,r.id,r.shift).run();
 }

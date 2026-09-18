@@ -23,7 +23,11 @@ import {
 } from '../app/game/placement.ts';
 import { readPlanning, planningAction, validatePlan } from '../db/planning.ts';
 import { findPath } from '../app/game/pathfinding.ts';
-import { STATIONS, WORK_TARGETS } from '../app/game/workTargets.ts';
+import {
+  STATIONS,
+  workStations,
+  WORK_TARGETS,
+} from '../app/game/workTargets.ts';
 const sqlite = new DatabaseSync(':memory:');
 sqlite.exec('PRAGMA foreign_keys=ON');
 for (const f of readdirSync('drizzle')
@@ -114,6 +118,18 @@ assert.deepEqual(
 assert.equal(legacy.squareVersion, 0);
 assert.equal(state.squareVersion, 1);
 assert.equal(COMMUNITY_BUILDINGS.length, 12);
+assert.equal(SQUARE_LOTS.length, 4);
+assert.deepEqual(
+  workStations(legacy),
+  STATIONS,
+  'Existing towns keep their supply stand',
+);
+const stand = workStations(state).find((s) => s.id === 'supplies');
+const postDoor = entrance(townBuildings(state).find((b) => b.id === 'post'));
+assert.ok(
+  Math.hypot(stand.x - postDoor.x, stand.z - postDoor.z) <= 2.1,
+  'Supplies sit beside the new Post Office',
+);
 assert.equal(new Set(COMMUNITY_BUILDINGS.map((b) => b.id)).size, 12);
 for (const b of COMMUNITY_BUILDINGS)
   assert.ok(b.job && b.work && b.activity && b.outcome && b.future);
@@ -123,6 +139,17 @@ assert.ok(!blocked(0, 6), 'Arrival point is open');
 assert.ok(!blocked(0.6, 6), 'New arrivals can move immediately');
 for (let z = 3; z <= 12; z += 0.5)
   assert.ok(!blocked(0, z), 'Market keeps the central walkway open');
+const general = buildings.find((b) => b.id === 'general');
+const post = buildings.find((b) => b.id === 'post');
+assert.equal(
+  buildings.find((b) => b.id === 'clothing').z,
+  buildings.find((b) => b.id === 'cafe').z,
+);
+assert.equal(buildings.find((b) => b.id === 'gardenclub').z, general.z);
+assert.ok(
+  post.z - post.depth / 2 - (general.z + general.depth / 2) >= 4,
+  'Post Office corner has a generous passage',
+);
 for (const b of buildings) {
   const door = entrance(b);
   assert.ok(!blocked(door.x, door.z), b.name + ' entrance');
@@ -135,7 +162,7 @@ for (const b of buildings) {
 }
 for (const target of WORK_TARGETS)
   assert.ok(!blocked(target.x, target.z), target.id + ' remains accessible');
-for (const station of STATIONS)
+for (const station of workStations(state))
   assert.ok(!blocked(station.x, station.z), station.title + ' reachable');
 for (const stall of marketStalls(state))
   assert.ok(
@@ -293,5 +320,5 @@ assert.equal(
 );
 assert.deepEqual(sqlite.prepare('PRAGMA foreign_key_check').all(), []);
 console.log(
-  'PASS: legacy migration, inward-facing accessible square, preserved homes/stations, 36 lot/building choices, locked sites, owner permissions, town isolation, votes, funding, and duplicate protection.',
+  'PASS: legacy migration, inward-facing accessible square, preserved homes/stations, 48 lot/building choices, locked sites, owner permissions, town isolation, votes, funding, and duplicate protection.',
 );

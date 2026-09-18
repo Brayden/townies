@@ -222,10 +222,16 @@ body:has(.housing-modal) [data-slot=dialog-overlay]{backdrop-filter:none;backgro
 .community-square-panel { margin: 24px 0; padding: 20px; border: 1px solid #c9d3b6; border-radius: 18px; background: #f5f4e9; }
 .square-plan { display: block; width: 100%; max-height: 290px; margin: 16px auto; border-radius: 12px; }
 .square-lot-options, .venue-catalog { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin: 14px 0; }
+.square-lot-options, .venue-catalog { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .square-lot-options button, .venue-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; white-space: normal; min-width: 0; }
 .venue-choice { padding: 14px; border: 1px solid #c9d3b6; border-radius: 12px; background: #fffdf5; color: #384939; cursor: pointer; }
 .venue-choice[aria-pressed="true"], .square-lot-options [aria-pressed="true"] { border-color: #537c62; outline: 2px solid #537c62; background: #e6eedb; }
 .venue-choice small, .square-lot-options small { font-size: 13px; }
+.venue-choice-benefits { display: grid; gap: 12px; width: 100%; border-top: 1px solid #d9dfcc; padding-top: 12px; margin-top: 4px; }
+.venue-choice-benefit { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.5; }
+.venue-choice-benefit > svg { flex-shrink: 0; margin-top: 2px; color: #617d57; }
+.venue-choice-benefit > span { display: grid; gap: 3px; min-width: 0; }
+.venue-choice-benefit-label { font-size: 11px; font-weight: 600; color: #64735d; }
 .venue-choice:focus-visible, .square-lot-options button:focus-visible { outline: 3px solid #ae7634; outline-offset: 3px; }
 .venue-detail { padding: 18px; border: 1px solid #d6cfb6; border-radius: 14px; background: #fffdf7; }
 .venue-detail h4 { font-size: 22px; margin: 0 0 8px; }
@@ -233,5 +239,38 @@ body:has(.housing-modal) [data-slot=dialog-overlay]{backdrop-filter:none;backgro
 .venue-possibilities > div { border-left: 3px solid #91a577; padding-left: 12px; }
 .venue-possibilities strong, .venue-possibilities .eyebrow { display: block; }
 .venue-possibilities p { margin: 6px 0; }
-@media (max-width: 600px) { .community-square-panel { padding: 14px; } .venue-catalog { grid-template-columns: repeat(2,minmax(0,1fr)); } .square-lot-options { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .community-square-panel { padding: 14px; } .venue-catalog, .square-lot-options { grid-template-columns: 1fr; } }
 .square-lot-options, .venue-catalog { border: 0; padding: 0; min-width: 0; }
+.planning-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 13px; color: #64715b; }
+.planning-summary strong { color: #37543e; margin-left: 6px; }
+.planning-tabs { min-width: 0; gap: 14px; }
+.planning-tab-navigation { position: sticky; top: 0; z-index: 3; padding: 5px 0; background: #fffbed; }
+.planning-tab-list { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); width: 100%; height: auto !important; gap: 4px; padding: 4px; border: 1px solid #cbd5bd; background: #eaf0df; border-radius: 12px; }
+.planning-tab-list [role="tab"], .planning-institution-list [role="tab"] { min-height: 44px; height: auto; padding: 9px; white-space: normal; color: #52644b; cursor: pointer; }
+.planning-tab-list [role="tab"][aria-selected="true"], .planning-institution-list [role="tab"][aria-selected="true"] { background: #fffdf5; color: #294c35; box-shadow: 0 1px 4px #29452b20; font-weight: 700; }
+.planning-tab-dot { width: 6px; height: 6px; border-radius: 50%; background: #699258; flex-shrink: 0; }
+.planning-tab-content:not([hidden]) { display: grid; gap: 16px; min-width: 0; }
+.planning-tabs [role="tabpanel"][hidden], .planning-tabs [role="tabpanel"][inert] { display: none; }
+.planning-tab-content > .community-square-panel { margin: 0; }
+.planning-current-link { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px; border: 1px solid #cbd5bd; border-radius: 10px; background: #f0f3e5; color: #36533e; text-align: left; font-size: 13px; cursor: pointer; }
+.planning-current-link span { font-weight: 700; }
+.planning-destinations { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.planning-destinations button { display: flex; flex-direction: column; gap: 8px; padding: 16px; text-align: left; border: 1px solid #d0d9c0; border-radius: 12px; background: #fffdf5; color: #40593d; cursor: pointer; }
+.planning-destinations button:hover { background: #eaf1df; border-color: #879e72; }
+.planning-destinations span, .planning-destinations small { font-size: 13px; line-height: 1.5; }
+.planning-destinations small { color: #6c765f; }
+.planning-institution-tabs { gap: 14px; min-width: 0; }
+.planning-institution-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: 100%; height: auto !important; gap: 4px; padding: 4px; background: #eaf0df; border-radius: 10px; }
+.planning-institution-heading { font-weight: 700; font-size: 18px; color: #46603d; }
+.planning-institution-heading small { display: block; font-size: 13px; font-weight: 400; margin-top: 5px; }
+.planning-current-link:focus-visible, .planning-destinations button:focus-visible { outline: 3px solid #63865b; outline-offset: 3px; }
+@media (max-width: 600px) { .planning-destinations { grid-template-columns: 1fr; } .planning-tab-list [role="tab"] { font-size: 12px; padding: 7px 3px; } .planning-institution-list [role="tab"] { font-size: 12px; padding: 7px 4px; } }
+.town-menu-modal { width: min(900px,calc(100vw - 32px)) !important; max-width: 900px !important; }
+.town-menu-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; color: #52674b; }
+.town-menu-summary > span { display: inline-flex; align-items: center; gap: 6px; }
+.town-menu-tabs { grid-template-columns: repeat(5,minmax(0,1fr)); }
+.town-menu-welcome { padding: 16px; border: 1px solid #d0d9c0; background: #f1f4e8; border-radius: 12px; }
+.town-menu-directory { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; margin: 0; }
+.town-menu-directory button { justify-content: flex-start; text-align: left; white-space: normal; min-width: 0; min-height: 44px; }
+.town-menu .invite-card { margin: 0; }
+@media(max-width:600px) { .town-menu-modal { width: calc(100vw - 16px) !important; } .town-menu-tabs { grid-template-columns: repeat(3,minmax(0,1fr)); } .town-menu-directory { grid-template-columns: 1fr; } }
