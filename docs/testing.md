@@ -14,6 +14,8 @@ Use Node 24. Run `npm ci` and `npm run setup` before local development. All acco
 
 Install the browser with `npx playwright install chromium` (`--with-deps` on Linux). `CHROME_PATH` can select an installed Chrome for local debugging. CI uses Playwright's bundled browser.
 
+`npm run test:browser` builds the local application before running the suites so menu fixtures always use current compiled stylesheets, including on a clean checkout. When running an individual browser test directly, run `npm run build` first.
+
 Integration tests create a unique directory under `outputs/`, initialize their own database, allocate a local port and stop their server on completion. Logs remain in that directory for diagnosis. Do not publish logs, databases, cookies or local fixtures. No Cloudflare account is necessary.
 
 ## Legacy lint and formatting debt
