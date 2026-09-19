@@ -9,3 +9,5 @@ Keep PRs focused. Do not increase the tracked lint/format baseline or weaken CI/
 Do not push directly to main, create official release tags, publish releases, or deploy without explicit maintainer authorization for that action. Do not include credentials, local state, backups, reports, or recordings in commits. Report security problems privately under SECURITY.md.
 
 Document player-visible behavior and validation, not the conversation history. Contributors retain copyright; contributions are submitted under Apache-2.0. The Townies name and branding are reserved by TRADEMARKS.md.
+
+For menu structure, hierarchy, navigation, and layout work, apply [the Townies game menus skill](docs/skills/townies-game-menus/SKILL.md). Keep its canonical version in this repository so contributors share the same guidance.

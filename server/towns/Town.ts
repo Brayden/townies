@@ -1,3 +1,4 @@
+import {townSummary} from '../../db/townDirectory';
 import {TownRealtime} from './realtime';
 import type {SocketGrant} from '../../shared/town-wire';
 import {DurableObject} from 'cloudflare:workers';
@@ -37,7 +38,7 @@ export class Town extends DurableObject<Cloudflare.Env>{
   this.ctx.storage.transactionSync(()=>{this.ctx.storage.sql.exec('DELETE FROM friendships');for(const row of links)upsert(this.ctx.storage,'friendships',row)});
  }
  async syncFriends(id:string){return this.serial(async()=>{await this.init(id);await this.friends();for(const r of this.rows('SELECT * FROM residents WHERE town_id=? AND inside=1',id))await syncVisit(this.database.asD1(),r as any);this.live.notify('world');this.live.notify('social')})}
- async summary(id:string):Promise<{name:string;private:number;project:number;farm_funded:number;residents:number;online:number;occupied:number[]}>{return this.serial(async()=>{await this.init(id);const t=this.rows('SELECT * FROM towns WHERE id=?',id)[0];return {name:t.name,private:t.private,project:t.project,farm_funded:t.farm_funded,residents:this.rows('SELECT COUNT(*) AS n FROM residents WHERE town_id=?',id)[0].n,online:this.rows('SELECT COUNT(*) AS n FROM residents WHERE town_id=? AND seen>?',id,Date.now()-12000)[0].n,occupied:this.rows('SELECT home FROM residents WHERE town_id=? AND home IS NOT NULL',id).map(r=>r.home)}})}
+ async summary(id:string){return this.serial(async()=>{await this.init(id);const summary=await townSummary(this.database.asD1(),id);if(!summary)throw new Error('Town not found');return {...summary,occupied:this.rows('SELECT home FROM residents WHERE town_id=? AND home IS NOT NULL',id).map(r=>r.home)}})}
  async profiles(id:string,ids:string[]){return this.serial(async()=>{await this.init(id);return this.rows('SELECT id,name,color,home,home_access AS access,inside,seen,town_id AS town FROM residents WHERE town_id=?',id).filter(r=>ids.includes(r.id))})}
  async resident(id:string,identity:string){return this.serial(async()=>{await this.init(id);return this.rows('SELECT * FROM residents WHERE token_hash=? AND town_id=?',await hash(identity),id)[0]??null})}
  async admit(id:string,row:Row){return this.serial(async()=>{await this.init(id);const old=this.rows('SELECT * FROM residents WHERE id=? AND town_id=?',row.id,id)[0];if(old)return old;if(this.rows('SELECT COUNT(*) AS n FROM residents WHERE town_id=?',id)[0].n>=50)throw new Error('This town has reached 50 residents.');upsert(this.ctx.storage,'residents',row);return row})}

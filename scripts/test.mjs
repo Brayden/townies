@@ -2,6 +2,9 @@ import { readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 const mode = process.argv[2] ?? 'unit';
 const browser = [
+  'activity-panels-browser.mjs',
+  'settings-menu-browser.mjs',
+  'move-town-browser.mjs',
   'camera-browser.mjs',
   'graphics-browser.mjs',
   'hud-layout-browser.mjs',

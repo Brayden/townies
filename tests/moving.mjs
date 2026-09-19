@@ -7,7 +7,11 @@ import { readMayor, readElection, electionAction } from '../db/elections.ts';
 const sql = new DatabaseSync(':memory:');
 sql.exec('PRAGMA foreign_keys=ON');
 for (const f of readdirSync(new URL('../drizzle/', import.meta.url))
-  .filter((f) => f.endsWith('.sql') && Number(f.slice(0, 4)) <= 15)
+  .filter(
+    (f) =>
+      f.endsWith('.sql') &&
+      (Number(f.slice(0, 4)) <= 15 || f === '0020_town_activity.sql'),
+  )
   .sort())
   sql.exec(readFileSync(new URL('../drizzle/' + f, import.meta.url), 'utf8'));
 const d = {
@@ -100,7 +104,7 @@ const publicTowns = (await movingOptions(d, row('a'), { mode: 'public' }, now))
   .towns;
 assert.deepEqual(
   publicTowns.map((t) => t.id),
-  ['public'],
+  ['public', 'full'],
 );
 assert.ok(publicTowns.every((t) => !('invite' in t)));
 assert.equal(
