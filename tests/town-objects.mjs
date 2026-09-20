@@ -93,6 +93,50 @@ const old = first.town.id,
   nextDb = townDB(next),
   rid = first.resident.id;
 assert.notEqual(old, next);
+// Directory metrics must use the town object, even while D1 is stale.
+const founded = stamp - 40 * 86400000;
+nextDb.prepare('UPDATE towns SET created=? WHERE id=?').run(founded, next);
+nextDb
+  .prepare('UPDATE residents SET seen=? WHERE id=?')
+  .run(stamp - 3600000, second.resident.id);
+nextDb
+  .prepare('UPDATE residents SET seen=0 WHERE id=?')
+  .run(second.resident.id);
+d1.prepare('UPDATE residents SET last_active=0,seen=0 WHERE id=?').run(
+  second.resident.id,
+);
+const destination = (
+  await a.ok({ action: 'move-options', key: second.town.key })
+).destination;
+assert.equal(destination.created, founded);
+assert.equal(destination.residents, 1);
+assert.equal(destination.online, 0);
+assert.equal(
+  destination.active72h,
+  1,
+  'Disconnect preserves recent activity in the DO',
+);
+assert.ok(!('invite' in destination));
+const privatePage = await a.ok({ action: 'move-options', mode: 'public' });
+assert.ok(!privatePage.towns.some((t) => t.id === next || t.id === old));
+// Expose this synthetic town temporarily to exercise the public directory path.
+d1.prepare('UPDATE towns SET private=0 WHERE id=?').run(next);
+nextDb.prepare('UPDATE towns SET private=0 WHERE id=?').run(next);
+const publicPage = await a.ok({ action: 'move-options', mode: 'public' });
+assert.equal(publicPage.towns.find((t) => t.id === next).active72h, 1);
+assert.equal(publicPage.towns.find((t) => t.id === next).created, founded);
+d1.prepare('UPDATE towns SET private=1 WHERE id=?').run(next);
+nextDb.prepare('UPDATE towns SET private=1 WHERE id=?').run(next);
+assert.equal(
+  (
+    await a.api('/api/game', {
+      action: 'move-options',
+      mode: 'public',
+      cursor: { created: -1, id: 'bad' },
+    })
+  ).status,
+  400,
+);
 // Simultaneous mowers still award each shared patch exactly once.
 for (const player of [a, b]) {
   const state = await player.ok({ action: 'job', job: 'mow' });

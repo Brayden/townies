@@ -1,11 +1,15 @@
+import {publicTownPage,townSummary} from './townDirectory.ts';
 import {HOMES} from '../app/game/data.ts';
 type Citizen={id:string;town_id:string;town_joined_at?:number;home:number|null;job:string|null;name:string};
-type Destination={id:string;name:string;private:number;project:number;farm_funded:number;residents:number;online:number};
-const summary=`SELECT t.id,t.name,t.private,t.project,t.farm_funded,COUNT(r.id) AS residents,COUNT(CASE WHEN r.seen>? THEN 1 END) AS online FROM towns t LEFT JOIN residents r ON r.town_id=t.id`;
 export async function movingOptions(d:D1Database,r:Citizen,b:Record<string,unknown>,now=Date.now()){
- if(b.mode==='public')return {towns:(await d.prepare(`${summary} WHERE t.private=0 AND t.id<>? GROUP BY t.id HAVING COUNT(r.id)<50 ORDER BY online DESC,residents DESC,t.created LIMIT 12`).bind(now-12000,r.town_id).all<Destination>()).results};
+ if(b.mode==='public'){
+  const page=await publicTownPage(d,r.town_id,b.cursor);if('error' in page)return page;
+  const towns=await Promise.all(page.towns.map(t=>townSummary(d,t.id,now)));
+  return {towns:towns.filter(t=>t!==null&&!t.private),nextCursor:page.nextCursor};
+ }
  const key=typeof b.key==='string'?b.key.trim().toUpperCase():'';
- const target=await d.prepare(`${summary} WHERE t.id<>? AND ((?<>'' AND t.invite=?) OR (?='' AND t.private=0 AND t.id=?)) GROUP BY t.id`).bind(now-12000,r.town_id,key,key,key,typeof b.destination==='string'?b.destination:'').first<Destination>();
+ const match=await d.prepare("SELECT id FROM towns WHERE id<>? AND ((?<>'' AND invite=?) OR (?='' AND private=0 AND id=?))").bind(r.town_id,key,key,key,typeof b.destination==='string'?b.destination:'').first<{id:string}>();
+ const target=match?await townSummary(d,match.id,now):null;
  if(!target)return {error:'No other town matches. Check your friend’s code or choose a public town.',status:404};
  if(target.residents>=50)return {error:'That town has 50 residents. Your current home is safe; try another town.',status:409};
  const occupied=(await d.prepare('SELECT home FROM residents WHERE town_id=? AND home IS NOT NULL').bind(target.id).all<{home:number}>()).results.map(v=>v.home);

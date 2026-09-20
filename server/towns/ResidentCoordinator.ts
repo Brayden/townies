@@ -1,3 +1,4 @@
+import {publicTownPage} from '../../db/townDirectory';
 import {hasProfanity,NAME_LANGUAGE_ERROR,TOWN_LANGUAGE_ERROR} from '../profanity';
 import {DurableObject} from 'cloudflare:workers';
 import {hash,type Call} from './Town';
@@ -57,11 +58,11 @@ export class ResidentCoordinator extends DurableObject<Cloudflare.Env>{
  }
  private async options(m:Member,b:Record<string,any>){
   if(b.mode==='public'){
-   const towns=(await this.env.DB.prepare('SELECT t.id FROM towns t LEFT JOIN residents r ON r.town_id=t.id WHERE t.private=0 AND t.id<>? GROUP BY t.id HAVING COUNT(r.id)<50 ORDER BY COUNT(r.id) DESC LIMIT 12').bind(m.town).all<{id:string}>()).results;
-   const summaries=await Promise.all(towns.map(async t=>{const s=await this.town(t.id).summary(t.id);return {id:t.id,name:s.name,private:s.private,project:s.project,farm_funded:s.farm_funded,residents:s.residents,online:s.online}}));return json({towns:summaries.filter(t=>t.residents<50)});
+   const page=await publicTownPage(this.env.DB,m.town,b.cursor);if('error' in page)return json(page,400);
+   const summaries=await Promise.all(page.towns.map(async t=>{const {occupied:_occupied,...summary}=await this.town(t.id).summary(t.id);return summary}));return json({towns:summaries.filter(t=>!t.private),nextCursor:page.nextCursor});
   }
   const key=String(b.key??'').trim().toUpperCase();const t=await this.env.DB.prepare("SELECT id FROM towns WHERE id<>? AND ((?<>'' AND invite=?) OR (?='' AND private=0 AND id=?))").bind(m.town,key,key,key,String(b.destination??'')).first<{id:string}>();if(!t)return json({error:'No other town matches that code.'},404);
-  const s=await this.town(t.id).summary(t.id);if(s.residents>=50)return json({error:'That town has 50 residents.'},409);return json({destination:{id:t.id,name:s.name,private:s.private,project:s.project,farm_funded:s.farm_funded,residents:s.residents,online:s.online},homes:HOMES.filter(h=>!s.occupied.includes(h.id)).map(h=>({id:h.id,name:h.name}))});
+  const s=await this.town(t.id).summary(t.id);if(s.residents>=50)return json({error:'That town has 50 residents.'},409);const {occupied:_occupied,...destination}=s;return json({destination,homes:HOMES.filter(h=>!s.occupied.includes(h.id)).map(h=>({id:h.id,name:h.name}))});
  }
  private async resumeMove(m:Member){
   const tx=this.ctx.storage.kv.get<Transfer>('transfer')!;

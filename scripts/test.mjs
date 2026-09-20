@@ -1,7 +1,18 @@
 import { readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 const mode = process.argv[2] ?? 'unit';
+// Browser fixtures use the compiled application styles, including Tailwind.
+// Build once so fresh checkouts and CI do not depend on existing dist assets.
+if (mode === 'browser') {
+  const result = spawnSync(process.execPath, ['scripts/build.mjs'], {
+    stdio: 'inherit',
+  });
+  if (result.status !== 0) process.exit(result.status ?? 1);
+}
 const browser = [
+  'activity-panels-browser.mjs',
+  'settings-menu-browser.mjs',
+  'move-town-browser.mjs',
   'camera-browser.mjs',
   'graphics-browser.mjs',
   'hud-layout-browser.mjs',
