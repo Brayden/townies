@@ -13,8 +13,15 @@
   "embla-carousel-react@8.5.2": "third-party/licenses/embla.txt",
   "embla-carousel-reactive-utils@8.5.2": "third-party/licenses/embla.txt",
   "input-otp@1.4.2": "third-party/licenses/input-otp.txt",
+  "@polka/url@1.0.0-next.29": "third-party/licenses/lukeed.txt",
+  "@yuku-toolchain/types@0.9.5": "third-party/licenses/yuku.txt",
   "react-remove-scroll-bar@2.3.8": "third-party/licenses/react-remove-scroll-bar.txt",
+  "sirv@3.0.2": "third-party/licenses/lukeed.txt",
+  "stackback@0.0.2": "third-party/licenses/stackback.txt",
   "unpic@4.2.2": "third-party/licenses/unpic.txt",
   "victory-vendor@37.3.6": "third-party/licenses/victory.txt",
-  "yoga-layout@3.2.1": "third-party/licenses/yoga.txt"
+  "yoga-layout@3.2.1": "third-party/licenses/yoga.txt",
+  "yuku-ast@0.9.5": "third-party/licenses/yuku.txt",
+  "yuku-codegen@0.9.5": "third-party/licenses/yuku.txt",
+  "yuku-parser@0.9.5": "third-party/licenses/yuku.txt"
 }

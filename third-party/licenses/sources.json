@@ -54,10 +54,22 @@
     "blob": "3d8feae905f69bb4279c5abe93d005c7ccc5bdf7",
     "file": "third-party/licenses/input-otp.txt"
   },
+  "lukeed": {
+    "source": "https://github.com/lukeed/polka/blob/main/license",
+    "blob": "d46889ae35762abe2fc2f33a4b2ef0825fd1a6dc",
+    "file": "third-party/licenses/lukeed.txt",
+    "note": "The polka and sirv repositories publish the same license blob."
+  },
   "react-remove-scroll-bar": {
     "source": "https://github.com/theKashey/react-remove-scroll-bar/blob/master/LICENSE",
     "blob": "7c08c3990396ecefd90f99ff5d9a34f26f5b5616",
     "file": "third-party/licenses/react-remove-scroll-bar.txt"
+  },
+  "stackback": {
+    "source": "https://github.com/defunctzombie/node-stackback/blob/master/package.json",
+    "blob": "3e8b7b2c023d3535e0869b0959616cda4d654fc8",
+    "file": "third-party/licenses/stackback.txt",
+    "note": "MIT declaration from package metadata; full upstream notice missing."
   },
   "unpic": {
     "source": "https://www.npmjs.com/package/unpic/v/4.2.2",
@@ -73,6 +85,11 @@
     "source": "https://github.com/FormidableLabs/victory/blob/main/LICENSE.txt",
     "blob": "4d33f1aba85636b665016cabb1b991209177c606",
     "file": "third-party/licenses/victory.txt"
+  },
+  "yuku": {
+    "source": "https://github.com/yuku-toolchain/yuku/blob/main/LICENSE",
+    "blob": "2904c90621f4439118ab41378148563f116ab47e",
+    "file": "third-party/licenses/yuku.txt"
   },
   "css-box-shadow": {
     "source": "https://www.npmjs.com/package/css-box-shadow/v/1.0.0-3",

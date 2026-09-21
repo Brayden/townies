@@ -19,7 +19,7 @@ const files = [...new Set(listing.stdout.split('\0'))].filter(
 );
 const result = spawnSync(
   'npx',
-  ['--no-install', 'oxfmt', '--check', ...files],
+  ['--no-install', 'vp', 'fmt', '--check', ...files],
   { stdio: 'inherit' },
 );
 process.exit(result.status ?? 1);

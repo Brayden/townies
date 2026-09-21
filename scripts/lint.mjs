@@ -1,10 +1,14 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 const baseline = JSON.parse(readFileSync('.github/lint-baseline.json', 'utf8'));
-const result = spawnSync('npx', ['--no-install', 'oxlint', '--format=json'], {
-  encoding: 'utf8',
-  maxBuffer: 20 * 1024 * 1024,
-});
+const result = spawnSync(
+  'npx',
+  ['--no-install', 'vp', 'lint', '--format=json'],
+  {
+    encoding: 'utf8',
+    maxBuffer: 20 * 1024 * 1024,
+  },
+);
 if (result.error || !result.stdout?.trim().startsWith('{'))
   throw (
     result.error ??
@@ -28,7 +32,7 @@ if (result.status !== 0 && report.diagnostics.length === 0)
   throw Error(result.stderr || 'Lint execution failed.');
 if (failed) {
   console.error(
-    'New lint debt detected. Run npx oxlint for details; fix findings without increasing the baseline.',
+    'New lint debt detected. Run npx vp lint for details; fix findings without increasing the baseline.',
   );
   process.exit(1);
 }
