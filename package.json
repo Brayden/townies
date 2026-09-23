@@ -27,7 +27,7 @@
     "licenses": "node scripts/licenses.mjs"
   },
   "dependencies": {
-    "@base-ui/react": "1.7.0",
+    "@base-ui/react": "1.8.0",
     "@better-auth/drizzle-adapter": "^1.7.4",
     "@better-auth/passkey": "1.7.4",
     "@shadcn/react": "0.3.0",
