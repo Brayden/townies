@@ -1,7 +1,7 @@
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import { runtimePackageDirectories } from './license-dependencies.mjs';
+import { distributedPackageDirectories } from './license-dependencies.mjs';
 const lockText = await readFile('package-lock.json', 'utf8');
 const digest = createHash('sha256').update(lockText).digest('hex');
 const lock = JSON.parse(lockText);
@@ -12,7 +12,11 @@ const sections = [
   `Third-party software included with Townies. See THIRD_PARTY_NOTICES.md.\nLockfile SHA256: ${digest}`,
 ];
 const missing = [];
-const runtimeDirectories = runtimePackageDirectories(lock);
+// The RSC plugin injects its runtime modules into the deployed client and
+// worker bundles even though the package itself is a direct dev dependency.
+const distributedDirectories = distributedPackageDirectories(lock, {
+  includedDevDependencies: ['@vitejs/plugin-rsc'],
+});
 async function notices(directory, depth = 0) {
   const output = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -30,7 +34,7 @@ async function notices(directory, depth = 0) {
 for (const [directory, info] of Object.entries(lock.packages).sort(([a], [b]) =>
   a.localeCompare(b),
 )) {
-  if (!runtimeDirectories.has(directory)) continue;
+  if (!distributedDirectories.has(directory)) continue;
   const pkg = JSON.parse(
     await readFile(path.join(directory, 'package.json'), 'utf8'),
   );
@@ -60,5 +64,5 @@ if (process.argv.includes('--check')) {
     );
 } else await writeFile('public/third-party-licenses.txt', output);
 console.log(
-  `Verified notices for ${sections.length - 1} runtime dependency packages.`,
+  `Verified notices for ${sections.length - 1} distributed dependency packages.`,
 );
