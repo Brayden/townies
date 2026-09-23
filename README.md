@@ -4,7 +4,7 @@ A cooperative browser game where up to 50 neighbors build a town together. Deliv
 
 **[Play the official game](https://townies.town) · [Report a bug](https://github.com/Brayden/townies/issues/new/choose) · [Contribute](CONTRIBUTING.md)**
 
-Townies uses Three.js with an angled 2.5D camera, React, Vinext/Vite, and Cloudflare Workers. Each town has its own SQLite-backed Durable Object and authenticated WebSocket connections. D1 stores accounts and the shared directory. See [architecture](docs/architecture.md).
+Townies uses Three.js with an angled 2.5D camera, React, Vinext/Vite+, and Cloudflare Workers. Each town has its own SQLite-backed Durable Object and authenticated WebSocket connections. D1 stores accounts and the shared directory. See [architecture](docs/architecture.md).
 
 ## Run locally
 
