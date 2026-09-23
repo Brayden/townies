@@ -1,6 +1,7 @@
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
+import { runtimePackageDirectories } from './license-dependencies.mjs';
 const lockText = await readFile('package-lock.json', 'utf8');
 const digest = createHash('sha256').update(lockText).digest('hex');
 const lock = JSON.parse(lockText);
@@ -11,6 +12,7 @@ const sections = [
   `Third-party software included with Townies. See THIRD_PARTY_NOTICES.md.\nLockfile SHA256: ${digest}`,
 ];
 const missing = [];
+const runtimeDirectories = runtimePackageDirectories(lock);
 async function notices(directory, depth = 0) {
   const output = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -28,7 +30,7 @@ async function notices(directory, depth = 0) {
 for (const [directory, info] of Object.entries(lock.packages).sort(([a], [b]) =>
   a.localeCompare(b),
 )) {
-  if (!directory || info.dev || info.optional) continue;
+  if (!runtimeDirectories.has(directory)) continue;
   const pkg = JSON.parse(
     await readFile(path.join(directory, 'package.json'), 'utf8'),
   );
@@ -58,5 +60,5 @@ if (process.argv.includes('--check')) {
     );
 } else await writeFile('public/third-party-licenses.txt', output);
 console.log(
-  `Verified notices for ${sections.length - 1} non-optional production packages.`,
+  `Verified notices for ${sections.length - 1} runtime dependency packages.`,
 );
