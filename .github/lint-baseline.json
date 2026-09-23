@@ -141,5 +141,7 @@
   "app/game/TownScene.tsx :: react(exhaustive-effect-dependencies)": 1,
   "app/game/TownScene.tsx :: react(refs)": 4,
   "app/game/TownScene.tsx :: react(set-state-in-effect)": 1,
-  "app/game/TownScene.tsx :: react(todo)": 2
+  "app/game/TownScene.tsx :: react(todo)": 2,
+  "app/game/MoveTownPanel.tsx :: react(exhaustive-effect-dependencies)": 1,
+  "app/game/MoveTownPanel.tsx :: react(todo)": 2
 }
